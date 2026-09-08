@@ -1522,3 +1522,127 @@ body { zoom: 0.95; }
     position: relative;
     z-index: 1;
 }
+/* ============================================================
+   OVERRIDES v53 — 修复充电器图片宽高比，接口功率指示对齐
+   图片原始尺寸 1080x985，宽高比 1.096:1
+   device-wrap 370px 宽对应高度应为 370*985/1080 = 338px
+   ============================================================ */
+.device-wrap {
+    width: 370px !important;
+    height: 338px !important;
+}
+.device-charger {
+    width: 100% !important;
+    height: 100% !important;
+}
+.device-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+}
+/* ============================================================
+   OVERRIDES v54 — 接口功率指示点向左下方微调
+   垂直: 各端口top增加3% (下移)
+   水平: pbg/picon/pval的left减少5% (左移)
+   ============================================================ */
+#usbModC1 { top: 28% !important; }
+#usbModC2 { top: 38% !important; }
+#usbModC3 { top: 48% !important; }
+#usbModA  { top: 58% !important; }
+
+.usb-pbg  { left: 38% !important; }
+.usb-picon { left: 68% !important; }
+.usb-pval { left: 75% !important; }
+/* ============================================================
+   OVERRIDES v55 — 接口指示点取中间值修正偏左下
+   垂直: 26.5/36.5/46.5/56.5% (原始和v54中点)
+   水平: pbg 40.5%, picon 70.5%, pval 77.5% (原始和v54中点)
+   ============================================================ */
+#usbModC1 { top: 26.5% !important; }
+#usbModC2 { top: 36.5% !important; }
+#usbModC3 { top: 46.5% !important; }
+#usbModA  { top: 56.5% !important; }
+
+.usb-pbg  { left: 40.5% !important; }
+.usb-picon { left: 70.5% !important; }
+.usb-pval { left: 77.5% !important; }
+/* ============================================================
+   OVERRIDES v56 — 垂直已对齐，水平左移1.5%修正偏右
+   top保持26.5/36.5/46.5/56.5%不变
+   left: pbg 39%, picon 69%, pval 76%
+   ============================================================ */
+.usb-pbg  { left: 39% !important; }
+.usb-picon { left: 69% !important; }
+.usb-pval { left: 76% !important; }
+/* ============================================================
+   OVERRIDES v57 — 接口功率图标(usb-picon)向下移动
+   top: 2px -> 7px
+   ============================================================ */
+.usb-picon { top: 7px !important; }
+/* ============================================================
+   OVERRIDES v58 — 功率图标再下移2px + 功率数值放大
+   usb-picon top: 7px -> 9px
+   usb-pval font-size: 11px -> 13px
+   ============================================================ */
+.usb-picon { top: 9px !important; }
+.usb-pval { font-size: 13px !important; }
+/* ============================================================
+   OVERRIDES v59 — 功率图标上移1.5px + 功率数值15px
+   usb-picon top: 9px -> 7.5px
+   usb-pval font-size: 13px -> 15px
+   ============================================================ */
+.usb-picon { top: 7.5px !important; }
+.usb-pval { font-size: 15px !important; }
+/* ============================================================
+   OVERRIDES v60 — 功率数值(usb-pval)上移1.5px
+   top: 9px -> 7.5px
+   ============================================================ */
+.usb-pval { top: 7.5px !important; }
+/* ============================================================
+   OVERRIDES v61 — 整体渲染缩小到95%
+   ============================================================ */
+body { zoom: 0.95 !important; }
+/* ============================================================
+   OVERRIDES v62 — 场景模式模块整体缩小
+   图标: 64px -> 52px
+   标签: 13px -> 12px
+   卡片padding: 20px -> 14px
+   选项间距: 14px -> 8px
+   ============================================================ */
+.scene-card { padding: 14px !important; }
+.scene-options { gap: 8px !important; }
+.scene-option { gap: 8px !important; padding: 6px 2px !important; min-width: 60px !important; }
+.scene-icon { width: 52px !important; height: 52px !important; }
+.scene-label { font-size: 12px !important; }
+/* ============================================================
+   OVERRIDES v63 — 场景模式精确尺寸
+   卡片padding: 16px, 图标: 54x54px, 标签: 13px
+   ============================================================ */
+.scene-card { padding: 16px !important; }
+.scene-icon { width: 54px !important; height: 54px !important; }
+.scene-label { font-size: 13px !important; }
+/* ============================================================
+   OVERRIDES v64 — 场景图标53px + 内容居中修复
+   ============================================================ */
+.scene-icon {
+    width: 53px !important;
+    height: 53px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    text-align: center !important;
+}
+.scene-icon img {
+    display: block !important;
+    margin: 0 auto !important;
+}
+/* ============================================================
+   OVERRIDES v65 — 场景标签到卡片底部距离增加2px
+   padding-bottom: 16px -> 18px
+   ============================================================ */
+.scene-card { padding-bottom: 18px !important; }
+/* ============================================================
+   OVERRIDES v66 — 场景卡片padding-bottom 17px
+   ============================================================ */
+.scene-card { padding-bottom: 17px !important; }
