@@ -50,7 +50,7 @@
 ## Windows 部署教程
 
 ### 环境要求
-
+(其他环境自行测试)
 - Windows 10 2004+ / Windows 11（需支持 WinRT Bluetooth）
 - Python 3.10+（推荐 3.13）
 - 内置蓝牙适配器（Intel/Qualcomm 均可）
@@ -138,6 +138,12 @@ server:
 ```powershell
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "CUKTECH-BLE-Server" /t REG_SZ /d "wscript.exe \"D:\path\to\cuktech-ble-ha\ble_server\start_server_autostart.vbs\"" /f
 ```
+###
+- 本项目就修改web管理页面 MQTT / Home Assistant / 巴法云集成参考原项目
+- 后端 BLE 协议、API 接口、SSE 事件完全兼容原项目
+- 前端在原项目基础上增强，不影响原有功能
+- 配置文件格式与原项目一致
+- MQTT / Home Assistant / 巴法云集成保持原有实现
 
 ### 自启脚本特性
 
@@ -303,12 +309,6 @@ git pull
 cd ble_server
 .\.venv\Scripts\python.exe -m pip install -e . --upgrade
 ```
-
-### Q: 纯黑主题在 LCD 屏幕上有必要吗？
-
-A: 纯黑主题主要为 OLED/AMOLED 屏幕设计，可显著降低功耗。LCD 屏幕上黑色背光仍亮，功耗差异不大，但视觉上更沉浸。
-
----
 
 ## 致谢
 
