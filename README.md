@@ -1,120 +1,236 @@
-# CUKTECH 10 GaN Charger Ultra - Home Assistant Integration
+# CUKTECH BLE-HA Web 增强版
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1+-green.svg)](https://www.home-assistant.io/)
+> 基于 [kairui1108/cuktech-ble-ha](https://github.com/kairui1108/cuktech-ble-ha) 改良的 CUKTECH 10 号 GaN 超充屏 Web 控制台，新增 Windows 原生部署支持、开机自启、自定义下拉组件、纯黑主题、充电协议可视化、场景模式独立卡片、延时关闭等多项增强。
 
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=kairui1108&repository=cuktech-ble-ha-integration&category=integration)
-[![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=cuktech_charger)
+---
 
-通过 BLE（低功耗蓝牙）将 CUKTECH 10 GaN Charger Ultra 充电器接入 Home Assistant，实现实时功率监控、端口控制和自动化。
+## 相比原项目的主要改进
 
-支持两种网关方案：**Python BLE Server**（运行在 Linux/Docker）或 **ESP32 BLE Bridge**（独立硬件）。
+### 前端增强
 
+| 改进项 | 说明 |
+|--------|------|
+| **自定义下拉组件** | 充电记录时间段、设备设置全部改为自定义下拉菜单（仿主题按钮逻辑），支持互斥、点击外部关闭、z-index 层叠优化 |
+| **纯黑主题** | 新增 AMOLED 纯黑配色主题（`#000000` 背景），在主题菜单中可选 |
+| **充电协议模块** | 新增独立的充电协议配置卡片，C1/C2 口支持 UFCS/PD/PPS，C3/A 口支持 UFCS/SCP，带开关和备注提示 |
+| **场景模式独立卡片** | 场景模式从设备设置下拉中独立出来，做成大图标卡片（AI智能/数码生态/极速单充/均衡输出） |
+| **延时关闭模块** | 新增端口延时关闭配置，支持开关、快捷分钟按钮、自定义分钟数 |
+| **模块重排** | 页面顺序优化为：概览→场景模式→端口监控→充电协议→功率曲线→充电记录→延时关闭→设备设置 |
+| **第一模块布局优化** | 充电器图片放大、右侧控件竖直三行排列（连接状态/BLE控制/总功率+最高电压），支持响应式单列布局 |
+| **全局细节美化** | 间距、圆角、阴影、hover 状态、按钮尺寸、徽章间隔等多轮微调 |
 
-## 功能特性
+### 部署与运维
 
-### BLE Server（Python）
-- **实时功率监控**：通过 SSE 事件流推送电压、电流、功率数据至 Web 前端，MQTT 推送至 HA
-- **SSE 事件流**：Server-Sent Events 实时推送端口数据、状态变更、设置更新，替代 2s 轮询
-- **功率曲线图**：Web UI 实时显示各端口及总功率曲线
-- **端口控制**：远程开关 C1/C2/C3/A 端口
-- **协议开关控制**：独立控制各端口的 PD/PPS/UFCS/SCP 协议开关
-- **倒计时设置**：为每个端口设置充电倒计时（支持自定义分钟数）
-- **设置管理**：场景模式、息屏时间、语言等设置
-- **BLE 自动重连**：断开后自动重连，指数退避策略
-- **MQTT LWT**：崩溃时自动通知 HA 设备离线
-- **巴法云 (Bemfa) 接入**：支持小爱同学/小度音箱语音控制充电器端口
-- **充电记录**：自动记录充电会话（电量、时长、峰值功率），支持 Web UI 历史查看
-- **SQLite 历史数据**：端口数据持久化存储，支持统计和导出
+| 改进项 | 说明 |
+|--------|------|
+| **Windows 原生部署** | 原项目官方测试环境为 Linux，本版本验证并支持 Windows 10/11 原生 Python 部署（bleak 走 WinRT） |
+| **开机自启** | 提供启动文件夹 + 注册表双保险自启方案，含 PowerShell 脚本（端口检测、就绪等待、日志记录）和 VBS 静默启动 |
+| **手动启动脚本** | `start_server.bat` 一键启动 |
+| **事件监听器优化** | document 点击监听器从 5 个合并为 2 个，下拉菜单全部互斥，提升响应速度 |
 
-### ESP32 固件
-- **独立硬件**：ESP32 直连充电器，无需主机
-- **Web 配置**：首次启动 AP 配网模式，浏览器配置凭据
-- **Web 仪表盘**：实时端口电压/电流/功率
-- **端口控制**：Web 或 MQTT 控制各端口
-- **协议开关**：独立开关 PD / PPS / UFCS / SCP
-- **场景模式切换**
-- **HTTP OTA 更新**
-- **巴法云 (Bemfa) 接入**：支持小爱同学/小度音箱语音控制
-- **支持芯片**：ESP32 / ESP32-S3 / ESP32-C3
-- 👉 **[cuktech-ble-esp32](https://github.com/kairui1108/cuktech-ble-esp32)** — 固件下载
+### Bug 修复
 
-### HA Integration
-- **BLE 连接控制**：开关实体控制 BLE 连接/断开，二进制传感器显示连接状态
-- **端口传感器**：电压、电流、功率、协议类型
-- **端口控制**：开关控制 C1/C2/C3/A 端口
-- **协议开关控制**：10 个开关实体，独立控制各端口 PD/PPS/UFCS/SCP 协议
-- **设置管理**：场景模式、息屏时间、语言等选择器
-- **倒计时设置**：数字实体控制各端口充电倒计时
-- **设备信息同步**：型号、固件版本从 BLE 服务器实时同步
-- **充电事件**：充电完成时自动触发事件实体，支持通知自动化
+| Bug | 修复 |
+|-----|------|
+| `buildSettingsHtml` 默认值 `s.options.value`（数组无此属性） | 改为 `s.options[0].value` |
+| 长按下拉按钮触发浏览器原生文本选择/上下文菜单 | 添加 `user-select:none` + `-webkit-touch-callout:none` |
+| 下拉框被同级设置项遮挡（z-index 层叠） | `.setting-item:has(.open) { z-index:100 }` |
+| 息屏时间 1 分钟选项在最后 | 调整为 1分钟→5分钟→10分钟→30分钟→常亮 |
+| 充电协议 C1/C2 顺序 | 调整为 UFCS→PD→PPS；C3/A 调整为 UFCS→SCP |
 
-### Web 管理界面
-- **SSE 实时推送**：端口数据、状态变更通过 SSE 事件流即时更新，无轮询延迟
-- 实时功率曲线图（各端口 + 总功率）
-- 充电记录历史查看（会话详情、功率曲线）
-- 端口开关控制
-- BLE 连接/断开控制
-- 设备设置管理
-- 倒计时设置（支持自定义和快捷选择）
-- **Web 配置页面**：在线修改配置，小米云扫码自动获取设备信息，敏感信息脱敏
-- **BLE 连接质量**：悬浮查看连接评分、解密率、连接时长、重连次数等指标
-- 日志级别管理
+---
 
-### 已知限制
+## 支持的设备
 
-- **单设备**：当前架构仅支持同时连接一个充电器
-- **协议检测**：协议显示以固件推送（PIID 17/18，与米家 App 一致）为准，协商变更时即时更新；仅在极端冷启动（PIID 17 从未收到且读取失败）时降级为基于电压的粗略推断
-- **平台支持（Python BLE Server）**：开发与测试基于 Linux 环境
+- CUKTECH 10 号 GaN 超充屏（型号 `njcuk.fitting.ad1204_`）
+- 理论支持同系列其他 BLE 协议设备（需自行验证）
 
-## 架构说明
+---
 
-```
-┌─────────────────┐     ┌─────────────────────┐     ┌─────────────────┐
-│  CUKTECH 10 GaN │───▶│   BLE Gateway       │───▶│  Home Assistant │
-│     Charger     │ BLE │  (Python / ESP32)   │ MQTT│    Integration  │
-└─────────────────┘     └─────────────────────┘     └─────────────────┘
-                              │
-                              │ HTTP API / Web UI
-                              ▼
-                        ┌─────────────┐
-                        │  Web 界面   │
-                        └─────────────┘
+## Windows 部署教程
+
+### 环境要求
+
+- Windows 10 2004+ / Windows 11（需支持 WinRT Bluetooth）
+- Python 3.10+（推荐 3.13）
+- 内置蓝牙适配器（Intel/Qualcomm 均可）
+- 小米账号（用于获取设备 BLE Token 和 Key）
+
+### 步骤一：克隆项目
+
+```bash
+git clone https://github.com/Melody719/cuktech-ble-ha-web-.git
+cd cuktech-ble-ha-web-\ble_server
 ```
 
-- **BLE Server**（Python）：运行在 Linux/Docker 主机上，功能完整（含历史数据）
-- **ESP32 固件**：独立运行在 ESP32 上，低功耗、低成本
-- **HA Integration**：订阅 MQTT 数据，两条路径通用
+### 步骤二：创建虚拟环境并安装依赖
 
-## 目录结构
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+```
+
+> 如果执行 `Activate.ps1` 报错"无法加载文件，因为在此系统上禁止运行脚本"，先执行：
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
+### 步骤三：配置设备
+
+复制配置模板：
+
+```powershell
+copy config.yaml.example config.yaml
+```
+
+编辑 `config.yaml`，填入以下信息：
+
+```yaml
+ble:
+  mac: "3C:CD:73:XX:XX:XX"    # 设备蓝牙 MAC 地址
+  token: "你的设备Token"          # 小米云获取
+  ble_key: "你的设备BLE Key"      # 小米云获取
+
+mqtt:
+  enabled: false                  # 暂不使用 Home Assistant 可设为 false
+
+server:
+  port: 8199                      # Web 服务端口
+```
+
+> **获取设备 MAC/Token/BLE Key**：启动服务后访问 `http://localhost:8199/config.html`，通过小米云扫码自动获取并写入配置。
+
+### 步骤四：启动服务
+
+```powershell
+# 方式一：手动启动（前台运行，可看日志）
+.\.venv\Scripts\python.exe -u ha_server.py
+
+# 方式二：一键启动脚本
+.\start_server.bat
+```
+
+启动成功后访问：**http://localhost:8199/**
+
+### 步骤五：验证连接
+
+打开网页后，查看第一模块"连接状态"：
+- **BLE**：绿色已连接
+- **设备型号**：显示 `njcuk.fitting.ad1204_`
+- **固件版本**：显示如 `2.1.2_0073`
+- **总功率/最高电压**：有实时数值
+
+---
+
+## 开机自启设置
+
+本项目提供两种自启方式（双保险）：
+
+### 方式一：启动文件夹（推荐）
+
+1. 确认 `start_server_autostart.ps1` 和 `start_server_autostart.vbs` 在 `ble_server` 目录下
+2. 按 `Win+R`，输入 `shell:startup`，打开启动文件夹
+3. 将 `start_server_autostart.vbs` 的**快捷方式**复制到启动文件夹中
+
+### 方式二：注册表（备用）
+
+```powershell
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "CUKTECH-BLE-Server" /t REG_SZ /d "wscript.exe \"D:\path\to\cuktech-ble-ha\ble_server\start_server_autostart.vbs\"" /f
+```
+
+### 自启脚本特性
+
+- 启动前检测 8199 端口是否已占用，避免重复启动
+- 等待 8 秒让系统蓝牙服务就绪
+- 检查 Python 解释器是否存在
+- 所有输出重定向到 `autostart.log`，方便排查问题
+- VBS 包装实现无控制台窗口静默启动
+
+---
+
+## 使用说明
+
+### 主题切换
+
+点击右上角 🎨 主题按钮，可选：
+- 暗色（默认）
+- 深蓝
+- 海洋
+- 灰色
+- **纯黑（新增）**
+- 浅色
+- 跟随系统
+
+### 场景模式
+
+页面顶部场景模式卡片，点击切换：
+- **AI 智能**：智能分配功率
+- **数码生态**：多设备均衡充电
+- **极速单充**：单口最大功率输出
+- **均衡输出**：各口平均分配
+
+### 充电协议
+
+充电协议卡片中可独立开关各端口协议：
+- **C1/C2 口**：UFCS / PD / PPS（关闭 PD 后 PPS 自动关闭）
+- **C3/A 口**：UFCS / SCP（修改后需重新插拔设备生效）
+
+### 延时关闭
+
+延时关闭模块中可设置各端口自动断电：
+- 打开开关后默认 60 分钟
+- 快捷按钮：15/30/60/90/120/180/240 分钟
+- 支持自定义分钟数
+- 关闭开关自动清除设置
+
+### 端口监控
+
+点击任意端口卡片可查看详细信息弹窗，含实时功率曲线和协议开关。
+
+---
+
+## 项目结构
 
 ```
-cuktech-ble-ha/
-├── ble_server/                    # BLE 服务端
-│   ├── src/cuktech_ble/
-│   │   ├── protocol.py            # BLE 协议常量和工具
-│   │   ├── controller.py          # BLE 连接和命令处理
-│   │   └── cli.py                 # CLI 用户界面
-│   ├── ha_server.py               # HTTP API + MQTT 服务
+cuktech-ble-ha-web-/
+├── ble_server/                     # BLE 服务核心
+│   ├── ha_server.py               # HTTP API + SSE + MQTT 服务主入口
 │   ├── ble_manager.py             # BLE 连接管理
+│   ├── controller.py              # BLE 连接和命令处理
+│   ├── cli.py                     # CLI 用户界面
 │   ├── state.py                   # 状态管理
 │   ├── state_protocol_v2.py       # 协议检测引擎 V2
 │   ├── history.py                 # SQLite 历史数据
-│   ├── config.py                  # 配置（支持 YAML）
+│   ├── energy.py                  # 能耗统计
+│   ├── downsample.py              # 数据降采样
+│   ├── config.py                  # 配置加载（支持 YAML）
+│   ├── xiaomi_cloud.py            # 小米云 Token 获取
 │   ├── bemfa_client.py            # 巴法云 MQTT 客户端（小爱/小度）
+│   ├── config.yaml                # 设备配置（含敏感信息，不入库）
 │   ├── config.yaml.example        # 配置模板
 │   ├── check_env.sh               # 环境检查脚本
 │   ├── cuktech_ctl.sh             # 服务控制脚本
+│   ├── requirements.txt           # Python 依赖
+│   ├── pyproject.toml             # 项目配置
+│   ├── start_server.bat           # 【新增】一键启动脚本
+│   ├── start_server_autostart.ps1 # 【新增】开机自启 PowerShell
+│   ├── start_server_autostart.vbs # 【新增】静默启动包装
 │   ├── web/
-│   │   ├── index.html             # 桌面端 Web 界面
+│   │   ├── index.html             # 桌面端 Web 界面（模块重排+自定义下拉）
 │   │   ├── phone.html             # 移动端 Web 界面
-│   │   └── static/                # 前端资源 (JS/CSS/图片)
+│   │   ├── config.html            # 配置页面
+│   │   └── static/
+│   │       ├── app.js             # 前端逻辑（自定义下拉+协议+场景+延时）
+│   │       ├── index.css          # 样式（含 52 个 OVERRIDES 增强块）
+│   │       └── locales/
+│   │           ├── zh-CN.js       # 中文语言包
+│   │           └── en.js          # 英文语言包
 │   ├── docker/                    # Docker 部署文件
 │   ├── tests/                     # 单元测试 (240+ tests)
 │   └── systemd/                   # systemd 服务配置
 │
-├── ha_integration/                # HA 自定义集成
+├── ha_integration/                # Home Assistant 自定义集成
 │   └── custom_components/cuktech_charger/
 │       ├── __init__.py            # Coordinator
 │       ├── binary_sensor.py       # 端口状态 + BLE 连接状态
@@ -131,7 +247,7 @@ cuktech-ble-ha/
 │       └── icon.png
 │
 ├── esp32_ble/                     # ESP32 固件
-│   ├── main/
+│   └── main/
 │       ├── main.c                 # WiFi/MQTT/HTTP/OTA
 │       ├── ble_manager.c          # BLE 状态机 + 异步命令
 │       └── ...
@@ -145,243 +261,63 @@ cuktech-ble-ha/
 │   ├── esp32-readme-en.md
 │   └── tools/                     # CLI 测试工具
 │
+├── README.md                      # 原项目说明
+├── README_ENHANCED.md             # 【新增】增强版项目介绍 + Windows 部署教程
+├── RELEASE_NOTES.md               # 原项目更新日志
 ├── LICENSE
-├── README.md
-├── RELEASE_NOTES.md
 └── bump-version.sh
 ```
 
-## Docker 部署
+---
 
-Docker 部署无需安装 Python 依赖，只需确保宿主机已安装 Docker 和蓝牙适配器。
+## 与原项目的兼容性
 
-镜像内置默认 `config.yaml`（来自 `config.yaml.example`），首次启动无需配置文件。
+- 后端 BLE 协议、API 接口、SSE 事件完全兼容原项目
+- 前端在原项目基础上增强，不影响原有功能
+- 配置文件格式与原项目一致
+- MQTT / Home Assistant / 巴法云集成保持原有实现
 
-**推荐方式（数据持久化）：**
+---
 
-```bash
-# 创建数据目录
-mkdir -p data
+## 常见问题
 
-# 运行容器
-docker run -d \
-  --name cuktech-ble \
-  --network host \
-  --privileged \
-  --restart unless-stopped \
-  -v $(pwd)/data:/data \
-  -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
-  -e CUKTECH_CONFIG_PATH=/data/config.yaml \
-  -e CUKTECH_HISTORY_DB_PATH=/data/port_history.db \
-  ghcr.io/kairui1108/cuktech-ble-server:latest
+### Q: 启动后页面显示"localhost 拒绝连接"？
 
-# 访问 http://<服务器IP>:8199/config.html 通过 Web 页面配置
-# 配置会自动保存到 ./data/config.yaml，重启后保留
+A: 检查服务是否正常启动，查看 `server.log` 或 `autostart.log`。确认 8199 端口未被其他程序占用：
+```powershell
+netstat -ano | findstr :8199
 ```
 
-> 配置通过 Web 页面修改后会自动写入 `./data/config.yaml`，容器重启或重建后配置不丢失。
+### Q: BLE 连接失败？
 
-**使用环境变量（不依赖配置文件）：**
+A: 
+1. 确认电脑蓝牙已开启
+2. 确认设备未被其他设备（如手机）连接
+3. 检查 `config.yaml` 中的 MAC/Token/BLE Key 是否正确
+4. 尝试在设备上重新插拔电源后重启服务
 
-```bash
-docker run -d \
-  --name cuktech-ble \
-  --network host \
-  --privileged \
-  --restart unless-stopped \
-  -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro \
-  -v $(pwd)/data:/data \
-  -e CUKTECH_CONFIG_PATH=/data/config.yaml \
-  -e CUKTECH_HISTORY_DB_PATH=/data/port_history.db \
-  -e CUKTECH_DEVICE_MAC=XX:XX:XX:XX:XX:XX \
-  -e CUKTECH_DEVICE_TOKEN=your_token_12bytes_hex \
-  -e CUKTECH_DEVICE_BLE_KEY=your_ble_key_16bytes_hex \
-  -e MQTT_ENABLED=false \
-  ghcr.io/kairui1108/cuktech-ble-server:latest
-```
-
-**Docker Compose：**
+### Q: 如何更新到最新版本？
 
 ```bash
-git clone https://github.com/kairui1108/cuktech-ble-ha.git
-cd cucuktech-ble-ha/ble_server
-
-# 快速启动（配置通过 config.html 在线修改）
-docker compose -f docker/docker-compose.pull.yml up -d
-
-# 或者使用环境变量方式（无需创建配置文件）
-# 编辑 docker-compose.env.yml 填入你的设备信息
-docker compose -f docker/docker-compose.env.yml up -d
-```
-
-## 安装步骤
-
-### 1. 获取设备 Token 和 BLE Key
-
-**方式一：Web 配置页面（推荐，最简单）**
-
-启动服务后访问 `http://<服务器IP>:8199/config.html`，点击「小米云自动获取」用米家 App 扫码即可自动获取。
-
-**方式二：命令行工具**
-
-使用 [Xiaomi-cloud-tokens-extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor) 从米家云端获取设备信息：
-
-```bash
-pip install xiaomi_cloud_tokens_extractor
-python -m xiaomi_cloud_tokens_extractor
-```
-
-选择你的 CUKTECH 充电器，获取：
-- `MAC` - 设备蓝牙 MAC 地址
-- `Token` - 设备 Token（12 字节 hex）
-- `BLE Key` - BLE 认证密钥（16 字节 hex）
-
-### 2. 检查环境
-
-```bash
+git pull
 cd ble_server
-./check_env.sh
+.\.venv\Scripts\python.exe -m pip install -e . --upgrade
 ```
 
-确认 Python、蓝牙适配器、BLE 支持等全部通过。
+### Q: 纯黑主题在 LCD 屏幕上有必要吗？
 
-### 3. 部署 BLE Server
+A: 纯黑主题主要为 OLED/AMOLED 屏幕设计，可显著降低功耗。LCD 屏幕上黑色背光仍亮，功耗差异不大，但视觉上更沉浸。
 
-```bash
-cd ble_server
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-#### 配置方式（三选一）
-
-**方式 A：Web 配置页面（推荐）**
-
-启动服务后访问 `http://<服务器IP>:8199/config.html`，在线修改所有配置，支持小米云扫码获取设备信息。
-
-**方式 B：YAML 配置文件**
-
-```bash
-cp config.yaml.example config.yaml
-# 编辑 config.yaml 填入你的配置
-```
-
-**方式 C：环境变量**
-
-```bash
-export CUKTECH_DEVICE_MAC="XX:XX:XX:XX:XX:XX"
-export CUKTECH_DEVICE_TOKEN="your_token_here"
-export CUKTECH_DEVICE_BLE_KEY="your_ble_key_here"
-export MQTT_HOST="your_mqtt_broker"
-export MQTT_PORT="1883"
-export MQTT_USER="your_username"
-export MQTT_PASS="your_password"
-```
-
-> 优先级：环境变量 > config.yaml
-
-```bash
-./cuktech_ctl.sh start
-```
-
-### 4. 安装 HA 集成
-
-**方式 A：HACS 安装（推荐）**
-
-1. 点击上方 **[Open in HACS]** 按钮，将本仓库添加为自定义集成
-2. 安装后重启 Home Assistant
-3. 点击 **[Add integration]** 按钮，搜索 "CUKTECH Charger" 添加
-
-**方式 B：手动安装**
-
-```bash
-cp -r ha_integration/custom_components/cuktech_charger /config/custom_components/
-```
-
-重启 Home Assistant。
-
-## 实体说明
-
-| 实体类型 | 实体名 | 功能 |
-|----------|--------|------|
-| switch | 连接控制 | BLE 连接/断开 |
-| binary_sensor | 连接状态 | BLE 连接状态 |
-| sensor | 端口电压/电流/功率 | 实时监控 |
-| sensor | 端口协议 | PD/QC/USB-A |
-| sensor | 总功率 | 所有端口功率之和 |
-| switch | 端口控制 | 开关 C1/C2/C3/A |
-| switch | 协议开关 (×10) | 独立控制各端口 PD/PPS/UFCS/SCP |
-| select | 场景模式 | AI/数码/单口/均衡 |
-| select | 息屏时间 | 5分钟/1分钟/10分钟等 |
-| number | 倒计时 | 各端口充电倒计时 |
-
-## API 接口
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/events` | GET | SSE 事件流（端口数据、状态、设置实时推送） |
-| `/api/status` | GET | 获取充电器状态 |
-| `/api/enable` | POST | 启用/禁用 BLE 连接 |
-| `/api/set` | POST | 设置 PIID 值 |
-| `/api/port` | POST | 控制端口开关 |
-| `/api/protocol` | POST | 控制协议开关（toggle/set/bulk/value） |
-| `/api/chart` | GET | 获取图表数据 |
-| `/api/history/{port}` | GET | 查询历史数据 |
-| `/api/statistics/{port}` | GET | 统计分析 |
-| `/api/export/{port}` | GET | CSV 导出 |
-| `/api/log-level` | GET/POST | 日志级别管理 |
-
-## MQTT 主题
-
-| 主题 | 说明 |
-|------|------|
-| `cuktech/charger/port/{c1\|c2\|c3\|a}` | 端口数据（retain） |
-| `cuktech/charger/settings` | 设置数据（retain） |
-| `cuktech/charger/status` | 连接状态（retain + LWT） |
-| `cuktech/charger/set` | 设置命令（订阅） |
-| `cuktech/charger/port` | 端口控制命令（订阅） |
-
-## 依赖
-
-### BLE Server
-- Python 3.10+
-- bleak >= 0.21
-- paho-mqtt >= 2.0
-- aiohttp >= 3.9
-- cryptography >= 41
-- pyyaml >= 6.0
-- requests >= 2.31
-
-### HA Integration
-- Home Assistant 2024.1+
-- MQTT（集成依赖）
-
-## 测试
-
-```bash
-# BLE Server (240+ tests)
-cd ble_server && .venv/bin/python -m pytest tests/
-
-# HA Integration (87 tests)
-cd ha_integration && python -m pytest tests/
-```
-
-## 效果预览
-
-![HA Integration](./docs/ha_integration.png)
-
-![HA Lovelace](./docs/ha_lovelace.png)
-
-## 许可证
-
-MIT License - 详见 [LICENSE](LICENSE) 文件
+---
 
 ## 致谢
 
-- [cuktech-ble-controller](https://github.com/zhyzhaogit/cuktech-ble-controller) - BLE 协议参考实现
-- [ha-cuk-ble](https://github.com/zuyan9/ha-cuk-ble) - 协议检测参考
-- [Xiaomi-cloud-tokens-extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor) - 小米设备 Token 提取工具
-- [bleak](https://github.com/hbldh/bleak) - BLE 通信库
-- [paho-mqtt](https://eclipse.dev/paho/) - MQTT 客户端
+- 原项目：[kairui1108/cuktech-ble-ha](https://github.com/kairui1108/cuktech-ble-ha)
+- BLE 库：[bleak](https://github.com/hbldh/bleak)
+- CUKTECH / 酷态科 提供的优秀硬件产品
+
+---
+
+## 许可证
+
+与原项目保持一致。
