@@ -27,6 +27,10 @@ if ($listening) {
 Set-Location $base
 $py = Join-Path $base ".venv\Scripts\python.exe"
 
+# Force UTF-8 encoding (Windows default is GBK, config.yaml is UTF-8)
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
+
 # Check Python interpreter exists
 if (-not (Test-Path $py)) {
     Add-Content -Path $autostartLog -Value "[$(Get-Date -Format 'HH:mm:ss')] ERROR: Python interpreter not found: $py" -Encoding UTF8
