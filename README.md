@@ -284,6 +284,14 @@ cuktech-ble-ha-web-/
 - MQTT / Home Assistant / 巴法云集成保持原有实现
 
 ---
+## 效果预览
+
+<img width="1380" height="1480" alt="image" src="https://github.com/user-attachments/assets/0024cf9e-b07c-405a-ae51-3045d21c131e" />
+
+<img width="1376" height="1461" alt="image" src="https://github.com/user-attachments/assets/9a14b7c7-dab2-4f32-a1f9-acbce67b8399" />
+
+<img width="1403" height="1349" alt="image" src="https://github.com/user-attachments/assets/84691437-8723-4ff9-bcaf-dfdc1e1e2f5f" />
+
 
 ## 常见问题
 
