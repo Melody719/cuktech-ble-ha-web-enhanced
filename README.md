@@ -59,8 +59,8 @@
 ### 步骤一：克隆项目
 
 ```bash
-git clone https://github.com/Melody719/cuktech-ble-ha-web-.git
-cd cuktech-ble-ha-web-\ble_server
+git clone https://github.com/Melody719/cuktech-ble-ha-web-enhanced.git
+cd cuktech-ble-ha-web-enhanced\ble_server
 ```
 
 ### 步骤二：创建虚拟环境并安装依赖
@@ -105,6 +105,7 @@ server:
 
 ```powershell
 # 方式一：手动启动（前台运行，可看日志）
+$env:PYTHONUTF8 = "1"
 .\.venv\Scripts\python.exe -u ha_server.py
 
 # 方式二：一键启动脚本
@@ -138,12 +139,7 @@ server:
 ```powershell
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "CUKTECH-BLE-Server" /t REG_SZ /d "wscript.exe \"D:\path\to\cuktech-ble-ha\ble_server\start_server_autostart.vbs\"" /f
 ```
-###
-- 本项目就修改web管理页面 MQTT / Home Assistant / 巴法云集成参考原项目
-- 后端 BLE 协议、API 接口、SSE 事件完全兼容原项目
-- 前端在原项目基础上增强，不影响原有功能
-- 配置文件格式与原项目一致
-- MQTT / Home Assistant / 巴法云集成保持原有实现
+> **说明**：本项目仅修改 Web 管理页面和新增 Windows 部署脚本，MQTT / Home Assistant / 巴法云集成请参考原项目文档。
 
 ### 自启脚本特性
 
@@ -199,7 +195,7 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "CUKTECH-BLE-Ser
 ## 项目结构
 
 ```
-cuktech-ble-ha-web-/
+cuktech-ble-ha-web-enhanced/
 ├── ble_server/                     # BLE 服务核心
 │   ├── ha_server.py               # HTTP API + SSE + MQTT 服务主入口
 │   ├── ble_manager.py             # BLE 连接管理
@@ -268,7 +264,6 @@ cuktech-ble-ha-web-/
 │   └── tools/                     # CLI 测试工具
 │
 ├── README.md                      # 原项目说明
-├── README_ENHANCED.md             # 【新增】增强版项目介绍 + Windows 部署教程
 ├── RELEASE_NOTES.md               # 原项目更新日志
 ├── LICENSE
 └── bump-version.sh
@@ -302,6 +297,12 @@ A: 检查服务是否正常启动，查看 `server.log` 或 `autostart.log`。�
 netstat -ano | findstr :8199
 ```
 
+### Q: 服务启动后立即退出，server.log 显示 UnicodeDecodeError: 'gbk' codec can't decode byte？
+
+A: 这是 Windows 特有的编码问题。config.yaml 是 UTF-8 编码，但 Python 在 Windows 下默认用 GBK 读取文件。解决方法：
+- **使用启动脚本**：start_server.bat 或自启脚本已自动设置 PYTHONUTF8=1
+- **手动启动**：先执行 $env:PYTHONUTF8 = "1" 再运行 python ha_server.py
+- **永久解决**：设置系统环境变量 PYTHONUTF8=1
 ### Q: BLE 连接失败？
 
 A: 
