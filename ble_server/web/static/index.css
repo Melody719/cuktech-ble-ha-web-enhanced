@@ -88,9 +88,9 @@
         .usb-pbg { position: absolute; left: 43%; z-index: 3; }
         .usb-pbg img { height: 100%; object-fit: contain; }
         .usb-pval { position: absolute; z-index: 4; color: #64B5F6; font-size: 8px; font-weight: bold; text-align: center; left: 80%; width: 20%; }
-        .charger-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; overflow: hidden; }
-        .control-box { background: rgba(255, 255, 255, 0.03); border-radius: 10px; padding: 12px; min-width: 0; overflow: hidden; }
-        .control-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .charger-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; min-width: 0; overflow: hidden; }
+        .control-box { background: rgba(255, 255, 255, 0.03); border-radius: 10px; padding: 16px; min-width: 0; overflow: hidden; }
+        .control-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
         .port-count { font-size: 14px; font-weight: 600; color: var(--success); }
         .port-count-label { font-size: 11px; color: var(--text-dim); }
         .stat-box { text-align: center; padding: 12px 8px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; min-width: 0; }
@@ -119,10 +119,10 @@
         .toggle-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
         .port-toggle input:checked + .toggle-slider { background: var(--accent); box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.4); }
         .port-toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
-        .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow: hidden; }
-        .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; min-width: 0; overflow: hidden; }
+        .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; overflow: hidden; }
+        .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; min-width: 0; overflow: hidden; transition: background 0.2s; }
         .setting-label { font-size: 13px; color: var(--text-dim); }
-        .setting-select { padding: 6px 10px; border: 1px solid var(--card-border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; min-width: 100px; max-width: 120px; cursor: pointer; }
+        .setting-select { padding: 7px 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; min-width: 100px; max-width: 130px; cursor: pointer; text-align: center; text-align-last: center; transition: border-color 0.2s; }
         .setting-select:focus { outline: none; border-color: var(--accent); }
         .footer { text-align: center; padding: 20px 0; font-size: 11px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; }
         .theme-switcher { position: relative; display: inline-block; }
@@ -208,6 +208,7 @@ select {
 select option {
     background: var(--card-bg, #252525);
     color: var(--text-dim);
+    text-align: center;
 }
 
 /* ── English layout guards ── */
@@ -226,4 +227,1298 @@ html[lang="en"] .card-title {
     letter-spacing: 0;
     word-break: break-word;
     line-height: 1.35;
+}
+
+/* ── Scene Mode Card (独立场景模式) ── */
+.scene-card { padding: 20px; }
+.scene-sep { color: var(--card-border); font-weight: 300; }
+.scene-current { color: var(--text); font-weight: 600; }
+.scene-more { color: var(--text-dim); letter-spacing: 2px; cursor: default; user-select: none; }
+.scene-options { display: flex; justify-content: space-around; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.scene-option { display: flex; flex-direction: column; align-items: center; gap: 14px; cursor: pointer; padding: 8px 4px; border-radius: 12px; transition: transform 0.15s; min-width: 72px; }
+.scene-option:active { transform: scale(0.94); }
+.scene-icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--card-border); transition: all 0.2s; color: var(--text-dim); }
+.scene-icon svg { width: 38px; height: 38px; }
+.scene-icon .scene-ai-text { font-size: 22px; font-weight: 700; letter-spacing: -1px; }
+.scene-option.active .scene-icon { background: var(--accent); border-color: var(--accent); box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.35); color: #fff; }
+.scene-label { font-size: 15px; font-weight: 500; color: var(--text-dim); transition: color 0.2s; }
+.scene-option.active .scene-label { color: var(--accent); font-weight: 600; }
+@media (max-width: 600px) {
+    .scene-icon { width: 64px; height: 64px; }
+    .scene-icon svg { width: 30px; height: 30px; }
+    .scene-icon .scene-ai-text { font-size: 18px; }
+    .scene-label { font-size: 13px; }
+}
+.setting-item:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* ── Charging Protocol Card (充电协议) ── */
+.proto-card { padding: 20px; }
+.proto-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.proto-port { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; transition: border-color 0.2s; }
+.proto-port:hover { border-color: rgba(var(--accent-rgb),0.3); }
+.proto-port-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.proto-port-name { font-size: 16px; font-weight: 700; }
+.proto-port-name.c1 { color: var(--port-c1); }
+.proto-port-name.c2 { color: var(--port-c2); }
+.proto-port-name.c3 { color: var(--port-c3); }
+.proto-port-name.a { color: var(--port-a); }
+.proto-port-cur { font-size: 11px; color: var(--text-dim); }
+.proto-section-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 4px; }
+.proto-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; gap: 10px; }
+.proto-row-info { min-width: 0; }
+.proto-row-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.proto-row-note { font-size: 10px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+.proto-toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.proto-toggle input { opacity: 0; width: 0; height: 0; }
+.proto-toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.12); border-radius: 26px; transition: 0.3s; }
+.proto-toggle-slider:before { content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+.proto-toggle input:checked + .proto-toggle-slider { background: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb),0.3); }
+.proto-toggle input:checked + .proto-toggle-slider:before { transform: translateX(20px); }
+.proto-toggle input:disabled + .proto-toggle-slider { opacity: 0.4; cursor: not-allowed; }
+.proto-note { font-size: 10px; color: var(--text-dim); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); line-height: 1.5; }
+@media (max-width: 600px) {
+    .proto-grid { grid-template-columns: 1fr; }
+    .proto-port-name { font-size: 15px; }
+}
+/* ============================================================
+   OVERRIDES — 充电协议美化 / 下拉框优化 / 延时关闭 / 全局美化
+   ============================================================ */
+
+/* ── 充电协议模块: 增加PD/PPS等行上下间距 ── */
+.proto-row { padding: 11px 0 !important; gap: 12px !important; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.proto-row:last-child { border-bottom: none; }
+.proto-port { border-radius: 14px !important; padding: 18px !important; transition: border-color 0.25s, box-shadow 0.25s !important; }
+.proto-port:hover { border-color: rgba(var(--accent-rgb),0.35) !important; box-shadow: 0 4px 20px rgba(var(--accent-rgb),0.08); }
+.proto-port-header { margin-bottom: 12px !important; padding-bottom: 12px !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
+.proto-section-label { letter-spacing: 0.8px !important; margin: 8px 0 6px !important; }
+.proto-row-label { font-size: 14px; font-weight: 600; }
+.proto-row-note { font-size: 10px; color: var(--text-dim); margin-top: 3px; line-height: 1.5; }
+.proto-toggle { width: 48px !important; height: 28px !important; }
+.proto-toggle-slider { border-radius: 28px !important; }
+.proto-toggle-slider::before { height: 22px !important; width: 22px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.25) !important; }
+
+/* ── 设备设置下拉框内部细节优化 ── */
+.setting-select {
+    padding: 8px 30px 8px 12px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    max-width: 140px !important;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 10px center !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.setting-select:hover { border-color: rgba(var(--accent-rgb),0.4) !important; }
+.setting-select:focus { outline: none !important; border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12) !important; }
+
+/* ── 延时关闭模块(原倒计时) ── */
+.countdown-item {
+    border-radius: 14px !important;
+    padding: 18px !important;
+    border: 1px solid transparent !important;
+    transition: border-color 0.25s, box-shadow 0.25s !important;
+}
+.countdown-item:hover { border-color: rgba(var(--accent-rgb),0.2) !important; box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.06) !important; }
+.countdown-header { margin-bottom: 8px !important; }
+.countdown-status {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.countdown-body { transition: opacity 0.25s; }
+.countdown-body.disabled { opacity: 0.35; pointer-events: none; }
+.countdown-body.disabled .countdown-input { background: rgba(255,255,255,0.02) !important; }
+.countdown-input {
+    padding: 9px 12px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    width: 100px !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.countdown-input:focus { outline: none !important; border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12) !important; }
+.countdown-unit { padding: 9px 14px !important; border-radius: 8px !important; font-weight: 500 !important; }
+.countdown-quick-btn {
+    padding: 7px 12px !important;
+    border-radius: 7px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s !important;
+}
+.countdown-quick-btn:hover { transform: translateY(-1px) !important; }
+.countdown-toggle-btn { padding: 9px !important; border-radius: 8px !important; font-weight: 600 !important; transition: all 0.2s !important; border: 1px solid transparent !important; }
+.countdown-toggle-btn:hover { transform: translateY(-1px) !important; }
+
+/* ── 全局细节美化 ── */
+.card { transition: border-color 0.25s, box-shadow 0.25s !important; }
+.card:hover { border-color: rgba(255,255,255,0.1) !important; }
+.setting-item { transition: background 0.2s, transform 0.15s !important; }
+.setting-item:active { transform: scale(0.995) !important; }
+.port-card { transition: border-color 0.25s, transform 0.15s, box-shadow 0.25s !important; }
+.port-card:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important; }
+.scene-icon { transition: transform 0.2s, box-shadow 0.2s !important; }
+.scene-icon:hover { transform: translateY(-2px) !important; }
+.time-btn { transition: all 0.2s !important; }
+.time-btn:hover { transform: translateY(-1px) !important; }
+/* ============================================================
+   OVERRIDES v2 — 图片居中/全局95%/延时关闭新布局/场景...删除
+   ============================================================ */
+
+/* ── 左上角充电器图片居中+放大 ── */
+.charger-layout { grid-template-columns: 200px 1fr !important; align-items: center !important; gap: 16px !important; }
+.charger-image { justify-content: center !important; align-items: center !important; }
+.device-wrap { width: 185px !important; }
+.device-charger { width: 185px !important; }
+
+/* ── 全局缩小到95% ── */
+body { zoom: 0.95; }
+
+/* ── 场景模式: 隐藏右上角... ── */
+.scene-more { display: none !important; }
+
+/* ── 延时关闭新布局 ── */
+.countdown-item { padding: 16px 18px !important; border-radius: 14px !important; }
+.countdown-port-name { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+.countdown-port-name.c1 { color: var(--port-c1); }
+.countdown-port-name.c2 { color: var(--port-c2); }
+.countdown-port-name.c3 { color: var(--port-c3); }
+.countdown-port-name.a { color: var(--port-a); }
+.countdown-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+.countdown-row-left { display: flex; align-items: center; gap: 10px; }
+.countdown-row-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.countdown-row-right { display: flex; align-items: center; gap: 6px; }
+.countdown-input { width: 78px !important; padding: 7px 10px !important; font-size: 13px !important; font-weight: 600 !important; text-align: center !important; border: 1px solid var(--card-border); border-radius: 8px; background: var(--bg); color: var(--text); transition: border-color 0.2s, box-shadow 0.2s; }
+.countdown-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12); }
+.countdown-unit { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+.countdown-quick { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+.countdown-quick-btn { padding: 7px 12px !important; border-radius: 7px !important; font-size: 11px !important; font-weight: 500 !important; cursor: pointer; transition: all 0.15s !important; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text); }
+.countdown-quick-btn:hover { background: rgba(var(--accent-rgb),0.18); border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.countdown-quick-btn:active { transform: scale(0.96); }
+.countdown-actions { display: flex; gap: 8px; }
+.countdown-toggle-btn { flex: 1; padding: 8px !important; border-radius: 8px !important; font-size: 12px !important; font-weight: 600 !important; cursor: pointer; transition: all 0.15s !important; border: 1px solid transparent; }
+.countdown-toggle-btn.set { background: rgba(var(--accent-rgb),0.15); color: var(--accent); border-color: rgba(var(--accent-rgb),0.25); }
+.countdown-toggle-btn.set:hover { background: rgba(var(--accent-rgb),0.25); box-shadow: 0 2px 12px rgba(var(--accent-rgb),0.2); }
+.countdown-toggle-btn.set:active { transform: scale(0.98); }
+.countdown-toggle-btn.clear { background: rgba(var(--danger-rgb),0.12); color: var(--danger); border-color: rgba(var(--danger-rgb),0.3); }
+.countdown-toggle-btn.clear:hover { background: rgba(var(--danger-rgb),0.22); box-shadow: 0 2px 12px rgba(var(--danger-rgb),0.15); }
+.countdown-toggle-btn.clear:active { transform: scale(0.98); }
+
+/* 移除旧的disabled/body/status样式 */
+.countdown-body { display: contents !important; }
+.countdown-body.disabled { opacity: 1 !important; pointer-events: auto !important; }
+.countdown-status { display: none !important; }
+.countdown-header { display: none !important; }
+.countdown-current { display: none !important; }
+.countdown-input-group { display: none !important; }
+/* ============================================================
+   OVERRIDES v3 — 细节微调
+   ============================================================ */
+
+/* 充电协议: 减小UFCS下方空白 */
+.proto-row { padding: 9px 0 !important; }
+.proto-row-note { margin-top: 2px !important; line-height: 1.4 !important; }
+.proto-section-label { margin: 6px 0 4px !important; }
+
+/* 延时关闭: 增大各行间距 */
+.countdown-row { margin-bottom: 16px !important; padding: 0 12px !important; }
+.countdown-quick { margin-bottom: 14px !important; }
+.countdown-port-name { margin-bottom: 12px !important; }
+
+/* 延时关闭: 设置按钮缩短 */
+.countdown-actions { justify-content: center !important; }
+.countdown-toggle-btn { flex: 0 0 auto !important; width: 110px !important; }
+
+/* 连接状态徽章 */
+.badge-row { margin-top: 8px; }
+/* ============================================================
+   OVERRIDES v4 — 放大左侧充电器图片适配右侧比例
+   ============================================================ */
+.charger-layout { grid-template-columns: 300px 1fr !important; gap: 24px !important; align-items: center !important; }
+.charger-image { min-height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+.device-wrap { width: 280px !important; max-width: 100% !important; }
+.device-charger { width: 280px !important; }
+.device-img { width: 100% !important; height: auto !important; }
+.unconnected-img { width: 100% !important; max-width: 280px !important; }
+
+/* USB功率叠加层随图片放大 */
+.usb-pbg { height: 34px !important; }
+.usb-pval { font-size: 11px !important; top: 9px !important; }
+.usb-picon { height: 16px !important; top: 2px !important; }
+.usb-mod-ani { height: 13% !important; }
+
+/* 右侧控件区保持紧凑 */
+.charger-controls { gap: 14px !important; }
+.control-box { padding: 14px 16px !important; }
+.stat-box { padding: 14px 8px !important; }
+/* ============================================================
+   OVERRIDES v5 — 左侧图片高度适配右侧内容总高度
+   ============================================================ */
+.charger-layout { align-items: stretch !important; grid-template-columns: auto 1fr !important; }
+.charger-image { height: 100% !important; min-height: 0 !important; }
+.device-wrap { height: 100% !important; width: auto !important; max-width: none !important; display: flex !important; align-items: center !important; }
+.device-wrap-inner { height: 100% !important; }
+.device-charger { height: 100% !important; width: auto !important; max-width: none !important; }
+.device-img { height: 100% !important; width: auto !important; object-fit: contain !important; }
+.unconnected-img { height: 100% !important; width: auto !important; max-height: 100% !important; object-fit: contain !important; }
+/* ============================================================
+   OVERRIDES v6 — 左右固定尺寸，模块内完整显示
+   ============================================================ */
+.charger-layout { height: 300px !important; grid-template-columns: 230px 1fr !important; align-items: stretch !important; gap: 20px !important; }
+
+/* 左侧图片固定尺寸 */
+.charger-image { height: 100% !important; width: 230px !important; min-width: 0 !important; }
+.device-wrap { width: 210px !important; height: 280px !important; max-width: none !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+.device-wrap-inner { width: 100% !important; height: 100% !important; }
+.device-charger { width: 100% !important; height: 100% !important; max-width: none !important; }
+.device-img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
+.unconnected-img { width: 100% !important; height: 100% !important; max-height: 280px !important; object-fit: contain !important; }
+
+/* 右侧控件区固定高度，三行完整显示 */
+.charger-controls { height: 100% !important; align-content: start !important; gap: 12px !important; }
+.control-box { padding: 12px 14px !important; }
+.control-label { margin-bottom: 8px !important; }
+.stat-box { padding: 10px 8px !important; }
+.badge-row { margin-top: 6px !important; }
+/* ============================================================
+   OVERRIDES v7 — 右侧三栏垂直排列
+   ============================================================ */
+.charger-controls .control-box { grid-column: 1 / -1 !important; }
+.charger-controls .stat-box { grid-column: span 1 !important; }
+/* ============================================================
+   OVERRIDES v8 — 左侧放大，右侧收窄
+   ============================================================ */
+.charger-layout { height: 320px !important; grid-template-columns: 280px 1fr !important; }
+.charger-image { width: 280px !important; }
+.device-wrap { width: 260px !important; height: 300px !important; }
+.unconnected-img { max-height: 300px !important; }
+/* ============================================================
+   OVERRIDES v9 — 左侧占50%，左右等分
+   ============================================================ */
+.charger-layout { height: 360px !important; grid-template-columns: 1fr 1fr !important; }
+.charger-image { width: 100% !important; }
+.device-wrap { width: 300px !important; height: 340px !important; }
+.unconnected-img { max-height: 340px !important; }
+/* ============================================================
+   OVERRIDES v10 — 左侧65%，右侧35%，高度增加
+   ============================================================ */
+.charger-layout { height: 420px !important; grid-template-columns: 65% 35% !important; }
+.device-wrap { width: 340px !important; height: 400px !important; }
+.unconnected-img { max-height: 400px !important; }
+/* ============================================================
+   OVERRIDES v11 — 左侧60%，减少空白，图片放大
+   ============================================================ */
+.charger-layout { grid-template-columns: 60% 40% !important; }
+.device-wrap { width: 400px !important; height: 410px !important; }
+.unconnected-img { max-height: 410px !important; }
+/* ============================================================
+   OVERRIDES v12 — 第一模块比例调整 + 延时关闭对齐
+   ============================================================ */
+
+/* ── 第一模块: 左右50/50, 图片宽度缩到300px减少空白 ── */
+.charger-layout { grid-template-columns: 50% 50% !important; }
+.device-wrap { width: 300px !important; height: 410px !important; }
+.unconnected-img { max-height: 410px !important; }
+
+/* ── 延时关闭: 纵向排列, 输入框全宽边框, 与快捷按钮行对齐 ── */
+.countdown-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+}
+.countdown-row-left {
+    justify-content: flex-start !important;
+}
+.countdown-row-right {
+    width: 100% !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 8px !important;
+    background: var(--bg) !important;
+    padding: 0 10px 0 14px !important;
+    gap: 8px !important;
+}
+.countdown-input {
+    flex: 1 !important;
+    width: auto !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 9px 0 !important;
+    box-shadow: none !important;
+}
+.countdown-input:focus {
+    border: none !important;
+    box-shadow: none !important;
+}
+.countdown-unit {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    color: var(--text-dim) !important;
+}
+.countdown-quick {
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+}
+/* ============================================================
+   OVERRIDES v13 — 第一模块空白修复 + 延时关闭对齐
+   ============================================================ */
+
+/* ── 第一模块: 左栏固定宽度消除空白, 右栏自适应确保完整显示 ── */
+.charger-layout { height: 440px !important; grid-template-columns: 340px 1fr !important; }
+.charger-image { width: 340px !important; }
+.device-wrap { width: 300px !important; height: 420px !important; }
+.unconnected-img { max-height: 420px !important; }
+
+/* 右侧控件区: 增加宽度余量, 确保三行完整显示 */
+.charger-controls { height: 100% !important; align-content: start !important; gap: 14px !important; }
+.control-box { padding: 14px 16px !important; }
+.stat-box { padding: 12px 8px !important; }
+
+/* ── 延时关闭: 四区域左右边界对齐 ── */
+/* 行容器: 无左右padding, 全宽 */
+.countdown-row { padding: 0 !important; margin-bottom: 14px !important; }
+
+/* 左侧(延时关闭+开关): 全宽, 左对齐 */
+.countdown-row-left { width: 100% !important; justify-content: flex-start !important; }
+
+/* 右侧(输入框+分钟): 全宽, 与快捷按钮行同宽 */
+.countdown-row-right { width: 100% !important; box-sizing: border-box !important; }
+
+/* 快捷按钮行: 全宽, 两端对齐 */
+.countdown-quick { width: 100% !important; justify-content: space-between !important; flex-wrap: nowrap !important; margin-bottom: 14px !important; }
+
+/* 操作按钮区: 全宽, 按钮撑满 */
+.countdown-actions { width: 100% !important; justify-content: flex-start !important; margin-top: 0 !important; }
+.countdown-toggle-btn { flex: 1 !important; width: 100% !important; box-sizing: border-box !important; }
+/* ============================================================
+   OVERRIDES v14 — 延时关闭: 输入框与开关同行 + 设置按钮全宽
+   ============================================================ */
+
+/* 行容器: 横向排列, 开关和输入框同一行 */
+.countdown-row {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    margin-bottom: 14px !important;
+}
+
+/* 左侧(延时关闭+开关): 自适应宽度, 不拉伸 */
+.countdown-row-left {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 10px !important;
+    display: flex !important;
+}
+
+/* 右侧(输入框+分钟): 占剩余空间 */
+.countdown-row-right {
+    flex: 1 !important;
+    width: auto !important;
+    min-width: 0 !important;
+}
+
+/* 快捷按钮行: 全宽两端对齐 */
+.countdown-quick {
+    width: 100% !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    margin-bottom: 14px !important;
+}
+
+/* 操作按钮区: 全宽 */
+.countdown-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: stretch !important;
+    margin-top: 0 !important;
+}
+
+/* 设置/清除按钮: 全宽撑满, 高优先级覆盖 */
+.countdown-actions .countdown-toggle-btn {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+/* ============================================================
+   OVERRIDES v15 — 延时关闭间距优化 + 第一模块右侧缩宽增高
+   ============================================================ */
+
+/* ── 延时关闭: 输入框缩短, 开关与输入框间距增大, 行间距增大 ── */
+.countdown-row {
+    gap: 24px !important;
+    margin-bottom: 20px !important;
+}
+.countdown-row-right {
+    flex: 0 0 200px !important;
+    width: 200px !important;
+    max-width: 200px !important;
+}
+.countdown-port-name {
+    margin-bottom: 16px !important;
+}
+.countdown-quick {
+    margin-bottom: 20px !important;
+}
+.countdown-actions {
+    margin-top: 4px !important;
+}
+
+/* ── 第一模块: 右侧缩小宽度, 增大高度 ── */
+.charger-layout {
+    height: 480px !important;
+    grid-template-columns: 380px 1fr !important;
+}
+.charger-image {
+    width: 380px !important;
+}
+.device-wrap {
+    width: 340px !important;
+    height: 460px !important;
+}
+.unconnected-img {
+    max-height: 460px !important;
+}
+/* ============================================================
+   OVERRIDES v16 — 输入框再缩短 + 第一模块大幅缩右增左增高
+   ============================================================ */
+
+/* ── 延时关闭: 输入框再次缩短 ── */
+.countdown-row-right {
+    flex: 0 0 160px !important;
+    width: 160px !important;
+    max-width: 160px !important;
+}
+
+/* ── 第一模块: 大幅缩小右栏宽度, 增大高度 ── */
+.charger-layout {
+    height: 580px !important;
+    grid-template-columns: 480px 1fr !important;
+}
+.charger-image {
+    width: 480px !important;
+}
+.device-wrap {
+    width: 440px !important;
+    height: 560px !important;
+}
+.unconnected-img {
+    max-height: 560px !important;
+}
+/* ============================================================
+   OVERRIDES v17 — 输入框缩135px + 第一模块图片缩小右栏居中
+   ============================================================ */
+
+/* ── 延时关闭: 输入框再缩25px, 延时关闭与开关间距20px ── */
+.countdown-row-right {
+    flex: 0 0 135px !important;
+    width: 135px !important;
+    max-width: 135px !important;
+}
+.countdown-row-left {
+    gap: 20px !important;
+}
+
+/* ── 第一模块: 左侧图片缩小, 右栏更窄更高垂直居中, 行间距增大 ── */
+.charger-layout {
+    height: 620px !important;
+    grid-template-columns: 500px 1fr !important;
+}
+.charger-image {
+    width: 500px !important;
+}
+.device-wrap {
+    width: 380px !important;
+    height: 560px !important;
+}
+.unconnected-img {
+    max-height: 560px !important;
+}
+
+/* 右栏: 垂直居中, 行间距增大 */
+.charger-controls {
+    height: 100% !important;
+    align-content: center !important;
+    gap: 22px !important;
+}
+.control-box {
+    padding: 16px 18px !important;
+}
+.stat-box {
+    padding: 14px 10px !important;
+}
+/* ============================================================
+   OVERRIDES v18 — 延时关闭45px + 第一模块减空白增间距
+   ============================================================ */
+
+/* ── 延时关闭: 延时关闭与开关间距45px ── */
+.countdown-row-left {
+    gap: 45px !important;
+}
+
+/* ── 第一模块: 缩小图片减少上下空白 ── */
+.charger-layout {
+    height: 540px !important;
+    grid-template-columns: 460px 1fr !important;
+}
+.charger-image {
+    width: 460px !important;
+}
+.device-wrap {
+    width: 340px !important;
+    height: 500px !important;
+}
+.unconnected-img {
+    max-height: 500px !important;
+}
+
+/* ── 右栏: 距离右侧过近 → 加右边距; 行间距增大 ── */
+.charger-controls {
+    padding-right: 16px !important;
+    gap: 28px !important;
+    align-content: center !important;
+}
+
+/* ── 控件内: 标签与按钮/内容间距增大(BLE控制与断开连接) ── */
+.control-label {
+    margin-bottom: 14px !important;
+}
+/* ============================================================
+   OVERRIDES v19 — 延时关闭35px+7px左空白 + 第一模块缩图缩按钮
+   ============================================================ */
+
+/* ── 延时关闭: 间距35px, 字样前7px空白 ── */
+.countdown-row-left {
+    gap: 35px !important;
+}
+.countdown-row-label {
+    margin-left: 7px !important;
+}
+
+/* ── 第一模块: 图片再次缩小减少上下空白 ── */
+.charger-layout {
+    height: 480px !important;
+    grid-template-columns: 420px 1fr !important;
+}
+.charger-image {
+    width: 420px !important;
+}
+.device-wrap {
+    width: 300px !important;
+    height: 440px !important;
+}
+.unconnected-img {
+    max-height: 440px !important;
+}
+
+/* ── 右栏: 行距缩小, 右边距增大, 按钮缩小 ── */
+.charger-controls {
+    padding-right: 26px !important;
+    gap: 20px !important;
+    align-content: center !important;
+}
+.charger-controls .btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+/* ============================================================
+   OVERRIDES v20 — 按钮padding 8x10px
+   ============================================================ */
+.charger-controls .btn {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+}
+/* ============================================================
+   OVERRIDES v21 — 按钮padding 8x8px, 字号13px
+   ============================================================ */
+.charger-controls .btn {
+    padding: 8px 8px !important;
+    font-size: 13px !important;
+}
+/* ============================================================
+   OVERRIDES v22 — 按钮padding 10x7px
+   ============================================================ */
+.charger-controls .btn {
+    padding: 10px 7px !important;
+    font-size: 13px !important;
+}
+/* ============================================================
+   OVERRIDES v23 — 第一模块上下空白缩小
+   ============================================================ */
+.charger-layout {
+    height: 460px !important;
+}
+/* ============================================================
+   OVERRIDES v24 — 图片320x420, 模块430px, 上下空白5px
+   ============================================================ */
+.charger-layout {
+    height: 430px !important;
+}
+.device-wrap {
+    width: 320px !important;
+    height: 420px !important;
+}
+.unconnected-img {
+    max-height: 420px !important;
+}
+/* ============================================================
+   OVERRIDES v25 — 模块360px, 图片320x360, 上下空白0px
+   ============================================================ */
+.charger-layout {
+    height: 360px !important;
+}
+.device-wrap {
+    width: 320px !important;
+    height: 360px !important;
+}
+.unconnected-img {
+    max-height: 360px !important;
+}
+/* ============================================================
+   OVERRIDES v26 — 整理左右空白, 图片与右栏间隔
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 360px 1fr !important;
+    column-gap: 20px !important;
+}
+.charger-image {
+    width: 360px !important;
+}
+/* ============================================================
+   OVERRIDES v27 — 补全: 左空白10px, 列间距5px, 图片330x360
+   ============================================================ */
+.charger-image {
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+}
+.charger-layout {
+    column-gap: 5px !important;
+}
+.device-wrap {
+    width: 330px !important;
+    height: 360px !important;
+}
+.unconnected-img {
+    max-height: 360px !important;
+}
+.charger-controls .btn-group {
+    gap: 20px !important;
+}
+/* ============================================================
+   OVERRIDES v28 — 按钮间隔35px
+   ============================================================ */
+.charger-controls .btn-group {
+    gap: 35px !important;
+}
+/* ============================================================
+   OVERRIDES v29 — 响应式: 窄屏右栏换行到左栏下方
+   ============================================================ */
+@media (max-width: 610px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .unconnected-img {
+        max-height: 320px !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v30 — 宽屏: 图片350x360, 间距15px, 右栏430px
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 360px 430px !important;
+    column-gap: 15px !important;
+}
+.charger-image {
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+    width: 360px !important;
+}
+.device-wrap {
+    width: 350px !important;
+    height: 360px !important;
+}
+/* ============================================================
+   OVERRIDES v31 — 撤销固定右栏, 恢复1fr, 间距15px, 图片350x360
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 360px 1fr !important;
+    column-gap: 15px !important;
+}
+.device-wrap {
+    width: 350px !important;
+    height: 360px !important;
+}
+/* ============================================================
+   OVERRIDES v32 — 响应式媒体查询(末尾, 确保优先级), 断点610px
+   ============================================================ */
+@media (max-width: 610px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+        column-gap: 0 !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .unconnected-img {
+        max-height: 320px !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v33 — 图片370x350, 网格350px 1fr, 媒体查询置末
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 350px 1fr !important;
+    column-gap: 15px !important;
+}
+.charger-image {
+    width: 350px !important;
+    justify-content: flex-start !important;
+    padding-left: 0 !important;
+}
+.device-wrap {
+    width: 370px !important;
+    height: 350px !important;
+}
+@media (max-width: 640px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v34 — 右栏固定440px, 左栏380px, 含媒体查询
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 380px 440px !important;
+    column-gap: 15px !important;
+}
+.charger-image {
+    width: 380px !important;
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+}
+.device-wrap {
+    width: 370px !important;
+    height: 350px !important;
+}
+@media (max-width: 640px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v35 — 右栏三段响应: 宽屏440px / 中屏1fr / 窄屏单列
+   ============================================================ */
+
+/* 中屏(641-880px): 右栏自适应1fr */
+@media (max-width: 880px) {
+    .charger-layout {
+        grid-template-columns: 380px 1fr !important;
+        column-gap: 15px !important;
+    }
+    .charger-image {
+        width: 380px !important;
+        justify-content: flex-start !important;
+        padding-left: 10px !important;
+    }
+    .device-wrap {
+        width: 370px !important;
+        height: 350px !important;
+    }
+}
+
+/* 窄屏(<=640px): 单列堆叠 */
+@media (max-width: 640px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v36 — 右栏外侧空白10px(右栏455px), 含三段媒体查询
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 380px 455px !important;
+    column-gap: 15px !important;
+}
+.charger-image {
+    width: 380px !important;
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+}
+.device-wrap {
+    width: 370px !important;
+    height: 350px !important;
+}
+
+/* 中屏(641-880px): 右栏自适应1fr */
+@media (max-width: 880px) {
+    .charger-layout {
+        grid-template-columns: 380px 1fr !important;
+        column-gap: 15px !important;
+    }
+    .charger-image {
+        width: 380px !important;
+        justify-content: flex-start !important;
+        padding-left: 10px !important;
+    }
+    .device-wrap {
+        width: 370px !important;
+        height: 350px !important;
+    }
+}
+
+/* 窄屏(<=640px): 单列堆叠 */
+@media (max-width: 640px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v37 — 左栏390px, 间距20px, 右栏440px外侧空白10px, 徽章18px
+   ============================================================ */
+.charger-layout {
+    grid-template-columns: 390px 440px !important;
+    column-gap: 20px !important;
+}
+.charger-image {
+    width: 390px !important;
+    justify-content: flex-start !important;
+    padding-left: 10px !important;
+}
+.device-wrap {
+    width: 370px !important;
+    height: 350px !important;
+}
+.badge-row {
+    gap: 18px !important;
+}
+@media (max-width: 900px) {
+    .charger-layout {
+        grid-template-columns: 390px 1fr !important;
+        column-gap: 20px !important;
+    }
+    .charger-image {
+        width: 390px !important;
+        justify-content: flex-start !important;
+        padding-left: 10px !important;
+    }
+    .device-wrap {
+        width: 370px !important;
+        height: 350px !important;
+    }
+}
+@media (max-width: 640px) {
+    .charger-layout {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        row-gap: 16px !important;
+    }
+    .charger-image {
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+    }
+    .device-wrap {
+        width: 280px !important;
+        height: auto !important;
+        max-width: 100% !important;
+    }
+    .charger-controls {
+        padding-right: 0 !important;
+        height: auto !important;
+        align-content: start !important;
+    }
+    .badge-row {
+        gap: 18px !important;
+    }
+}
+/* ============================================================
+   OVERRIDES v38 — 按钮padding 10x5px
+   ============================================================ */
+.charger-controls .btn {
+    padding: 10px 5px !important;
+    font-size: 13px !important;
+}
+/* ============================================================
+   OVERRIDES v39 — 按钮padding 10x3px
+   ============================================================ */
+.charger-controls .btn {
+    padding: 10px 3px !important;
+    font-size: 13px !important;
+}
+/* ============================================================
+   OVERRIDES v40 — 按钮移除flex:1, padding生效
+   ============================================================ */
+.charger-controls .btn {
+    flex: none !important;
+    padding: 10px 3px !important;
+    font-size: 13px !important;
+}
+/* ============================================================
+   OVERRIDES v41 — 恢复flex:1, btn-group加左右margin缩小按钮
+   ============================================================ */
+.charger-controls .btn {
+    flex: 1 !important;
+    padding: 10px 3px !important;
+    font-size: 13px !important;
+}
+.charger-controls .btn-group {
+    margin: 0 25px !important;
+}
+/* ============================================================
+   OVERRIDES v42 — btn-group margin 10px
+   ============================================================ */
+.charger-controls .btn-group {
+    margin: 0 10px !important;
+}
+/* ============================================================
+   OVERRIDES v43 — btn-group margin 16px, 按钮间距50px
+   ============================================================ */
+.charger-controls .btn-group {
+    margin: 0 16px !important;
+    gap: 50px !important;
+}
+/* ============================================================
+   OVERRIDES v44 — btn-group margin 13px, gap 43px
+   ============================================================ */
+.charger-controls .btn-group {
+    margin: 0 13px !important;
+    gap: 43px !important;
+}
+/* ============================================================
+   OVERRIDES v45 — 设备设置下拉框美化
+   ============================================================ */
+
+/* setting-item: 优化间距和hover */
+.setting-item {
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid transparent !important;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s !important;
+}
+.setting-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(var(--accent-rgb), 0.15) !important;
+}
+
+/* setting-label: 优化 */
+.setting-label {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--text) !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* select触发器: 美化 */
+.setting-select {
+    padding: 9px 36px 9px 16px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    min-width: 110px !important;
+    max-width: 150px !important;
+    border: 1px solid var(--card-border) !important;
+    background: var(--card-bg) !important;
+    color: var(--text) !important;
+    cursor: pointer !important;
+    text-align: center !important;
+    text-align-last: center !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1.5 1.5l4.5 4.5 4.5-4.5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
+}
+.setting-select:hover {
+    border-color: rgba(var(--accent-rgb), 0.4) !important;
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.08) !important;
+}
+.setting-select:focus {
+    outline: none !important;
+    border-color: rgba(var(--accent-rgb), 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12), 0 2px 8px rgba(var(--accent-rgb), 0.1) !important;
+}
+
+/* option选项: 美化(有限支持) */
+.setting-select option {
+    background: var(--card-bg) !important;
+    color: var(--text) !important;
+    font-size: 13px !important;
+    padding: 10px 16px !important;
+    line-height: 1.6 !important;
+}
+.setting-select option:checked {
+    background: rgba(var(--accent-rgb), 0.15) !important;
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+}
+.setting-select option:hover {
+    background: rgba(var(--accent-rgb), 0.08) !important;
+}
+
+
+/* ============================================================
+   OVERRIDES v47 — 通用自定义下拉组件
+   ============================================================ */
+.dropdown-switcher {
+    position: relative;
+    display: inline-block;
+}
+.dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dropdown-btn:hover {
+    border-color: rgba(var(--accent-rgb), 0.4);
+}
+.dropdown-btn .dropdown-arrow {
+    font-size: 10px;
+    opacity: 0.7;
+    transition: transform 0.2s;
+}
+.dropdown-switcher.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 120px;
+    z-index: 50;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.dropdown-switcher.open .dropdown-menu {
+    display: block;
+}
+.dropdown-option {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: center;
+    white-space: nowrap;
+}
+.dropdown-option:hover {
+    background: rgba(var(--accent-rgb), 0.08);
+}
+.dropdown-option.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* 设备设置下拉适配 */
+.setting-switcher .dropdown-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text);
+    min-width: 100px;
+    justify-content: center;
+}
+.setting-switcher .dropdown-menu {
+    right: 0;
+    min-width: 130px;
+}
+
+/* ============================================================
+   OVERRIDES v48 — 修复下拉框被overflow:hidden裁剪
+   ============================================================ */
+.setting-item {
+    overflow: visible !important;
+}
+.settings-grid {
+    overflow: visible !important;
+}
+.dropdown-switcher {
+    z-index: 10;
+}
+.dropdown-switcher.open {
+    z-index: 100;
+}
+.dropdown-menu {
+    z-index: 200 !important;
+}
+/* ============================================================
+   OVERRIDES v49 — 下拉框宽度调整 + 充电记录选中项不加粗
+   ============================================================ */
+.dropdown-menu {
+    min-width: 90px !important;
+    padding: 5px !important;
+}
+.setting-switcher .dropdown-menu {
+    min-width: 105px !important;
+}
+.dropdown-option {
+    padding: 7px 12px !important;
+}
+#chargePeriodMenu .dropdown-option.active {
+    font-weight: 400 !important;
+}
+/* ============================================================
+   OVERRIDES v50 — 充电记录下拉全部常规字重 + 宽度收窄
+   ============================================================ */
+#chargePeriodMenu .dropdown-option {
+    font-weight: 400 !important;
+}
+#chargePeriodMenu {
+    min-width: 75px !important;
+}
+/* ============================================================
+   OVERRIDES v51 — 禁止下拉按钮/选项长按文本选择和上下文菜单
+   ============================================================ */
+.dropdown-btn,
+.dropdown-option,
+.theme-btn,
+.theme-option {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    touch-action: manipulation !important;
+}
+/* ============================================================
+   OVERRIDES v52 — 修复下拉框被同级设置项遮挡(z-index层叠)
+   ============================================================ */
+.setting-item {
+    position: relative !important;
+    z-index: 1;
+}
+.setting-item:has(.dropdown-switcher.open) {
+    z-index: 100 !important;
+}
+.settings-grid {
+    position: relative;
+    z-index: 1;
 }

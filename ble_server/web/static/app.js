@@ -32,6 +32,14 @@
                 '--warning': '#ffb74d', '--warning-rgb': '255, 183, 77',
                 '--danger': '#e57373', '--danger-rgb': '229, 115, 115'
             },
+            'pure-black': {
+                '--bg': '#000000', '--card-bg': '#0d0d0d', '--card-border': '#1f1f1f',
+                '--text': '#ffffff', '--text-dim': '#888888',
+                '--accent': '#03a9f4', '--accent-rgb': '3, 169, 244',
+                '--success': '#4caf50', '--success-rgb': '76, 175, 80',
+                '--warning': '#ff9800', '--warning-rgb': '255, 152, 0',
+                '--danger': '#f44336', '--danger-rgb': '244, 67, 54'
+            },
             'light': {
                 '--bg': '#f5f5f5', '--card-bg': '#ffffff', '--card-border': '#e0e0e0',
                 '--text': '#212121', '--text-dim': '#757575',
@@ -67,15 +75,25 @@
             });
         }
 
-        function toggleThemeMenu() {
-            document.getElementById('themeMenu').classList.toggle('show');
+                // ── 统一: 点击外部关闭所有下拉菜单 ──
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.theme-switcher') || e.target.closest('#logLevelSwitcher') ||
+                e.target.closest('#chargePeriodSwitcher') || e.target.closest('.setting-switcher')) return;
+            document.getElementById('themeMenu')?.classList.remove('show');
+            document.getElementById('logLevelMenu')?.classList.remove('show');
+            document.getElementById('chargePeriodSwitcher')?.classList.remove('open');
+            document.querySelectorAll('.setting-switcher.open').forEach(s => s.classList.remove('open'));
+        });
+
+function toggleThemeMenu() {
+            const menu = document.getElementById('themeMenu');
+            const wasOpen = menu.classList.contains('show');
+            document.getElementById('logLevelMenu')?.classList.remove('show');
+            document.getElementById('chargePeriodSwitcher')?.classList.remove('open');
+            document.querySelectorAll('.setting-switcher.open').forEach(s => s.classList.remove('open'));
+            if (!wasOpen) menu.classList.add('show');
         }
 
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.theme-switcher')) {
-                document.getElementById('themeMenu').classList.remove('show');
-            }
-        });
 
         // Load saved theme
         const savedTheme = localStorage.getItem('cuktech-theme') || 'ha-dark';
@@ -119,14 +137,14 @@
         }
 
         function toggleLogLevelMenu() {
-            document.getElementById('logLevelMenu').classList.toggle('show');
+            const menu = document.getElementById('logLevelMenu');
+            const wasOpen = menu.classList.contains('show');
+            document.getElementById('themeMenu')?.classList.remove('show');
+            document.getElementById('chargePeriodSwitcher')?.classList.remove('open');
+            document.querySelectorAll('.setting-switcher.open').forEach(s => s.classList.remove('open'));
+            if (!wasOpen) menu.classList.add('show');
         }
 
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#logLevelSwitcher')) {
-                document.getElementById('logLevelMenu').classList.remove('show');
-            }
-        });
 
         // Initialize log level from server
         setTimeout(() => initLogLevel(), 0);
@@ -137,7 +155,7 @@
 
         const SETTINGS_CONFIG = [
             { piid: 5, nameKey: 'settings.sceneMode', options: [{ value: 1, labelKey: 'scene.ai' }, { value: 2, labelKey: 'scene.eco' }, { value: 3, labelKey: 'scene.single' }, { value: 4, labelKey: 'scene.balanced' }] },
-            { piid: 6, nameKey: 'settings.screenTimeout', options: [{ value: 1, labelKey: 'settings.min5' }, { value: 2, labelKey: 'settings.min10' }, { value: 3, labelKey: 'settings.min30' }, { value: 4, labelKey: 'settings.alwaysOn' }, { value: 5, labelKey: 'settings.min1' }] },
+            { piid: 6, nameKey: 'settings.screenTimeout', options: [{ value: 5, labelKey: 'settings.min1' }, { value: 1, labelKey: 'settings.min5' }, { value: 2, labelKey: 'settings.min10' }, { value: 3, labelKey: 'settings.min30' }, { value: 4, labelKey: 'settings.alwaysOn' }] },
             { piid: 13, nameKey: 'settings.deviceLanguage', options: [{ value: 0, label: 'English' }, { value: 1, label: '中文' }] },
             { piid: 15, nameKey: 'settings.usbATrickle', options: [{ value: 0, labelKey: 'settings.off' }, { value: 1, labelKey: 'settings.on' }] },
             { piid: 19, nameKey: 'settings.idleScreenOff', options: [{ value: 0, labelKey: 'settings.off' }, { value: 1, labelKey: 'settings.on' }] },
@@ -421,6 +439,74 @@
             finally { btn.disabled = false; }
         }
 
+
+        // ── Charging Protocol Card (充电协议独立卡片) ──
+        function renderProtocolCard() {
+            const grid = document.getElementById('protoGrid');
+            if (!grid) return;
+            const labels = { pd: 'PD', pps: 'PPS', ufcs: 'UFCS', scp: 'SCP' };
+            const portOrder = ['c1', 'c2', 'c3', 'a'];
+            let html = '';
+            for (const portKey of portOrder) {
+                const sw = protocolSwitches[portKey] || {};
+                const protoKeys = Object.keys(sw);
+                if (protoKeys.length === 0) continue;
+                const portId = PORT_KEY_TO_ID[portKey];
+                const portName = PORT_MAP[portId] || portKey.toUpperCase();
+                const portData = latestPorts[portId];
+                const curProto = portData ? portData.protocol : 'idle';
+                html += '<div class="proto-port">';
+                html += '<div class="proto-port-header">';
+                html += '<span class="proto-port-name ' + portKey + '">' + portName + '</span>';
+                html += '<span class="proto-port-cur">' + (curProto !== 'idle' ? curProto : '无输出') + '</span>';
+                html += '</div>';
+                html += '<div class="proto-section-label">充电协议</div>';
+                const isC1C2Port = (portKey === 'c1' || portKey === 'c2');
+                const isC3APort = (portKey === 'c3' || portKey === 'a');
+                const displayKeys = isC1C2Port ? ['ufcs', 'pd', 'pps'] : (isC3APort ? ['ufcs', 'scp'] : protoKeys);
+                for (const pk of displayKeys) {
+                    const on = !!sw[pk];
+                    const isC1C2 = isC1C2Port;
+                    const disabled = (pk === 'pps' && !sw.pd) ? 'disabled' : '';
+                    html += '<div class="proto-row">';
+                    html += '<div class="proto-row-info">';
+                    html += '<div class="proto-row-label">' + (labels[pk] || pk) + '</div>';
+                    if (pk === 'pd' && isC1C2) {
+                        html += '<div class="proto-row-note">关闭PD协议后，PPS协议也将同时关闭</div>';
+                    }
+                    if ((pk === 'ufcs' || pk === 'scp') && !isC1C2) {
+                        html += '<div class="proto-row-note">需重新插拔端口设备生效</div>';
+                    }
+                    html += '</div>';
+                    html += '<label class="proto-toggle">';
+                    html += '<input type="checkbox" ' + (on ? 'checked' : '') + ' ' + disabled + ' onchange="toggleProtocolCard(\'' + portKey + '\',\'' + pk + '\', this.checked)">';
+                    html += '<span class="proto-toggle-slider"></span>';
+                    html += '</label>';
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        async function toggleProtocolCard(port, proto, checked) {
+            const action = checked ? 'on' : 'off';
+            try {
+                const res = await fetch(API_BASE + '/api/protocol', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: port, protocol: proto, action: action })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    if (protocolSwitches[port]) protocolSwitches[port][proto] = checked;
+                    if (proto === 'pd' && !checked && protocolSwitches[port]) {
+                        protocolSwitches[port].pps = false;
+                    }
+                    renderProtocolCard();
+                    if (currentModalPort) renderModalProtocols();
+                }
+            } catch (e) { console.error('Protocol card toggle error:', e); }
+        }
         function closeModal() {
             document.getElementById('portModal').classList.remove('show');
             currentModalPort = null;
@@ -478,6 +564,7 @@
             renderPorts(data.ports);
             updateDeviceContainer(data.ports);
             updateSettingsUI(data.settings || {});
+            renderProtocolCard();
             renderCountdown(data.settings || {});
             updateSummary(data.ports);
             if (data.firmware_version) {
@@ -590,7 +677,7 @@
                             <div class="port-stat"><div class="port-stat-value">${port.current.toFixed(1)}</div><div class="port-stat-label">${I18N.t('power.current')}</div></div>
                             <div class="port-stat"><div class="port-stat-value">${port.power.toFixed(1)}</div><div class="port-stat-label">${I18N.t('power.power')}</div></div>
                         </div>
-                        <div class="port-protocol" style="text-align:center;margin-top:8px;font-size:11px;color:${protocolColor}">${port.protocol}</div>
+                        ${port.protocol !== 'idle' ? `<div class="port-protocol" style="text-align:center;margin-top:8px;font-size:11px;color:${protocolColor}">${port.protocol}</div>` : ``}
                     </div>`;
             }
             grid.innerHTML = html;
@@ -601,17 +688,109 @@
             openModal(portId);
         }
 
-        function buildSettingsHtml(settings) {
+        
+        // ── 充电记录时间段下拉 ──
+        function toggleChargePeriodMenu() {
+            const sw = document.getElementById('chargePeriodSwitcher');
+            const wasOpen = sw.classList.contains('open');
+            document.getElementById('themeMenu')?.classList.remove('show');
+            document.getElementById('logLevelMenu')?.classList.remove('show');
+            document.querySelectorAll('.setting-switcher.open').forEach(s => s.classList.remove('open'));
+            if (!wasOpen) sw.classList.add('open');
+        }
+        function setChargePeriod(value) {
+            const label = document.querySelector('#chargePeriodMenu .dropdown-option[data-value="' + value + '"]').textContent;
+            document.getElementById('chargePeriodLabel').textContent = label;
+            document.querySelectorAll('#chargePeriodMenu .dropdown-option').forEach(o => o.classList.remove('active'));
+            document.querySelector('#chargePeriodMenu .dropdown-option[data-value="' + value + '"]').classList.add('active');
+            document.getElementById('chargePeriodSwitcher').classList.remove('open');
+            startChargeHistoryAutoRefresh('chargeSessionList', 'chargeStats', value, 30000);
+        }
+
+function buildSettingsHtml(settings) {
             let html = '';
             SETTINGS_CONFIG.forEach(s => {
                 const val = settings[String(s.piid)] ?? s.options[0].value;
                 const name = I18N.t(s.nameKey);
-                const opts = s.options.map(o => `<option value="${o.value}" ${o.value === val ? 'selected' : ''}>${I18N.t(o.labelKey || o.label)}</option>`).join('');
-                html += `<div class="setting-item"><span class="setting-label">${name}</span><select class="setting-select" onchange="setSetting(${s.piid}, parseInt(this.value))">${opts}</select></div>`;
+                const cur = s.options.find(o => o.value === val);
+                const curLabel = cur ? I18N.t(cur.labelKey || cur.label) : '';
+                const opts = s.options.map(o =>
+                    `<div class="dropdown-option${o.value === val ? ' active' : ''}" onclick="setSettingValue(${s.piid}, ${o.value}, this)">${I18N.t(o.labelKey || o.label)}</div>`
+                ).join('');
+                html += `<div class="setting-item"><span class="setting-label">${name}</span><div class="dropdown-switcher setting-switcher"><button class="dropdown-btn" onclick="toggleSettingMenu(this)"><span class="setting-dropdown-value">${curLabel}</span><span class="dropdown-arrow">▾</span></button><div class="dropdown-menu">${opts}</div></div></div>`;
             });
             return html;
         }
 
+        function toggleSettingMenu(btn) {
+            const switcher = btn.closest('.dropdown-switcher');
+            const wasOpen = switcher.classList.contains('open');
+            document.querySelectorAll('.setting-switcher.open').forEach(s => s.classList.remove('open'));
+            if (!wasOpen) switcher.classList.add('open');
+        }
+
+        function setSettingValue(piid, value, optionEl) {
+            const switcher = optionEl.closest('.dropdown-switcher');
+            switcher.querySelector('.setting-dropdown-value').textContent = optionEl.textContent;
+            switcher.querySelectorAll('.dropdown-option').forEach(o => o.classList.remove('active'));
+            optionEl.classList.add('active');
+            switcher.classList.remove('open');
+            setSetting(piid, value);
+        }
+
+
+
+        // ── Scene Mode (独立卡片) ──
+        const SCENE_MODES = [
+            { value: 1, labelKey: 'scene.ai', icon: '<span class="scene-ai-text">AI</span>' },
+            { value: 2, labelKey: 'scene.eco', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="13" height="9" rx="1.5"/><path d="M2 15h13"/><rect x="16.5" y="8" width="4.5" height="9" rx="1"/><path d="M18.5 15h.5"/></svg>' },
+            { value: 3, labelKey: 'scene.single', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/><path d="M3 6.5h2.5M3 10.5h2.5M3 14.5h2"/></svg>' },
+            { value: 4, labelKey: 'scene.balanced', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2.5-5 5-5 7.5 0s5 5 7.5 0 2.5-5 3-5"/></svg>' }
+        ];
+        let sceneRendered = false;
+
+        function renderSceneMode(settings) {
+            const container = document.getElementById('sceneOptions');
+            if (!container) return;
+            const val = settings ? (settings['5'] ?? 1) : 1;
+            let html = '';
+            SCENE_MODES.forEach(m => {
+                const active = m.value === val ? ' active' : '';
+                html += '<div class="scene-option' + active + '" data-value="' + m.value + '" onclick="setSceneMode(' + m.value + ')">'
+                    + '<div class="scene-icon">' + m.icon + '</div>'
+                    + '<div class="scene-label">' + I18N.t(m.labelKey) + '</div>'
+                    + '</div>';
+            });
+            container.innerHTML = html;
+            const cur = SCENE_MODES.find(m => m.value === val);
+            const curEl = document.getElementById('sceneCurrent');
+            if (curEl && cur) curEl.textContent = I18N.t(cur.labelKey);
+            sceneRendered = true;
+        }
+
+        function updateSceneModeUI(settings) {
+            if (!sceneRendered) { renderSceneMode(settings); return; }
+            const val = settings ? (settings['5'] ?? 1) : 1;
+            document.querySelectorAll('.scene-option').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.value, 10) === val);
+            });
+            const cur = SCENE_MODES.find(m => m.value === val);
+            const curEl = document.getElementById('sceneCurrent');
+            if (curEl && cur) curEl.textContent = I18N.t(cur.labelKey);
+        }
+
+        async function setSceneMode(value) {
+            markLocal();
+            document.querySelectorAll('.scene-option').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.value, 10) === value);
+            });
+            const cur = SCENE_MODES.find(m => m.value === value);
+            const curEl = document.getElementById('sceneCurrent');
+            if (curEl && cur) curEl.textContent = I18N.t(cur.labelKey);
+            try {
+                await fetch(API_BASE + '/api/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid: 5, value: value }) });
+            } catch (e) { console.error('Set scene mode error:', e); }
+        }
         function updateSettingsUI(settings) {
             const grid = document.getElementById('settingsGrid');
             if (Object.keys(lastSettings).length === 0) {
@@ -653,25 +832,32 @@
 
         function renderCountdown(settings) {
             const grid = document.getElementById('countdownGrid');
+            if (!grid) return;
             if (!countdownRendered) {
                 let html = '';
                 for (const [id, name] of Object.entries(PORT_MAP)) {
                     const key = PORT_KEY_MAP[id];
                     html += `
                         <div class="countdown-item">
-                            <div class="countdown-header">
-                                <span class="countdown-port ${key}">${name}</span>
-                                <span class="countdown-current" id="countdown-status-${key}">${I18N.t('common.notSet')}</span>
-                            </div>
-                            <div class="countdown-input-group">
-                                <input type="number" class="countdown-input" id="countdown-${key}" min="0" max="1440" placeholder="${I18N.t('countdown.placeholder')}">
-                                <span class="countdown-unit">${I18N.t('countdown.placeholder')}</span>
+                            <div class="countdown-port-name ${key}">${name}</div>
+                            <div class="countdown-row">
+                                <div class="countdown-row-left">
+                                    <span class="countdown-row-label">延时关闭</span>
+                                    <label class="proto-toggle">
+                                        <input type="checkbox" id="countdown-enable-${key}" onchange="toggleCountdownEnable('${key}', this.checked)">
+                                        <span class="proto-toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="countdown-row-right">
+                                    <input type="number" class="countdown-input" id="countdown-${key}" min="1" max="1440" placeholder="未设置" onkeydown="if(event.key==='Enter'){handleCountdownAction('${key}')}">
+                                    <span class="countdown-unit">分钟</span>
+                                </div>
                             </div>
                             <div class="countdown-quick">
-                                ${QUICK_MINUTES.map(m => `<button class="countdown-quick-btn" onclick="setCountdown('${key}', ${m})">${I18N.t('countdown.quick', { count: m })}</button>`).join('')}
+                                ${QUICK_MINUTES.map(m => `<button class="countdown-quick-btn" onclick="setCountdown('${key}', ${m})">${m}分</button>`).join('')}
                             </div>
                             <div class="countdown-actions">
-                                <button class="countdown-toggle-btn set" id="countdown-btn-${key}" onclick="handleCountdownAction('${key}')">${I18N.t('common.set')}</button>
+                                <button class="countdown-toggle-btn set" id="countdown-btn-${key}" onclick="handleCountdownAction('${key}')">设置</button>
                             </div>
                         </div>`;
                 }
@@ -682,20 +868,30 @@
                 const piid = COUNTDOWN_PIIDS[id];
                 const currentVal = settings[String(piid)] || 0;
                 const key = PORT_KEY_MAP[id];
-                const statusEl = document.getElementById(`countdown-status-${key}`);
-                if (statusEl) {
-                    statusEl.textContent = currentVal > 0 ? I18N.t('common.minutes', { count: currentVal }) : I18N.t('common.notSet');
+                const enabled = currentVal > 0;
+                const toggle = document.getElementById('countdown-enable-' + key);
+                if (toggle) toggle.checked = enabled;
+                const input = document.getElementById('countdown-' + key);
+                if (input) {
+                    input.placeholder = enabled ? '分钟' : '未设置';
+                    if (document.activeElement !== input) input.value = enabled ? currentVal : '';
                 }
-                const btn = document.getElementById(`countdown-btn-${key}`);
+                const btn = document.getElementById('countdown-btn-' + key);
                 if (btn && !btn.disabled) {
-                    if (currentVal > 0) {
-                        btn.textContent = I18N.t('common.clear');
-                        btn.className = 'countdown-toggle-btn clear';
-                    } else {
-                        btn.textContent = I18N.t('common.set');
-                        btn.className = 'countdown-toggle-btn set';
-                    }
+                    if (enabled) { btn.textContent = '清除'; btn.className = 'countdown-toggle-btn clear'; }
+                    else { btn.textContent = '设置'; btn.className = 'countdown-toggle-btn set'; }
                 }
+            }
+        }
+
+        function toggleCountdownEnable(port, enabled) {
+            if (enabled) {
+                const input = document.getElementById('countdown-' + port);
+                const val = (input && input.value && parseInt(input.value) > 0) ? parseInt(input.value) : 60;
+                if (input) input.value = val;
+                setCountdown(port, val);
+            } else {
+                setCountdown(port, 0);
             }
         }
 
@@ -706,42 +902,53 @@
             countdownPending[port] = true;
             markLocal();
             const id = PORT_KEY_TO_ID[port];
-            const btn = document.getElementById(`countdown-btn-${port}`);
-            const statusEl = document.getElementById(`countdown-status-${port}`);
+            const btn = document.getElementById('countdown-btn-' + port);
+            const input = document.getElementById('countdown-' + port);
+            const toggle = document.getElementById('countdown-enable-' + port);
             const isClear = minutes === 0;
-            if (btn) { btn.disabled = true; btn.textContent = isClear ? I18N.t('common.clearing') : I18N.t('common.setting'); }
+            // 乐观更新: 立即反映UI, 不等待API
+            if (toggle) toggle.checked = !isClear;
+            if (input && document.activeElement !== input) {
+                input.value = isClear ? '' : minutes;
+                input.placeholder = isClear ? '未设置' : '分钟';
+            }
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = isClear ? '清除中...' : '设置中...';
+            }
             const piid = COUNTDOWN_PIIDS[id];
-            if (!piid) { countdownPending[port] = false; if (btn) { btn.disabled = false; } return; }
+            if (!piid) { countdownPending[port] = false; if (btn) btn.disabled = false; return; }
             try {
-                await fetch(`${API_BASE}/api/set`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid, value: minutes }) });
-                // Immediately update button + status based on result
+                await fetch(API_BASE + '/api/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid, value: minutes }) });
                 countdownPending[port] = false;
-                if (statusEl) statusEl.textContent = minutes > 0 ? I18N.t('common.minutes', { count: minutes }) : I18N.t('common.notSet');
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = minutes > 0 ? I18N.t('common.clear') : I18N.t('common.set');
-                    btn.className = `countdown-toggle-btn ${minutes > 0 ? 'clear' : 'set'}`;
+                    btn.textContent = isClear ? '设置' : '清除';
+                    btn.className = 'countdown-toggle-btn ' + (isClear ? 'set' : 'clear');
                 }
-            } catch (e) { console.error('Set countdown error:', e); countdownPending[port] = false; if (btn) { btn.disabled = false; } }
+            } catch (e) {
+                console.error('Set countdown error:', e);
+                countdownPending[port] = false;
+                if (btn) { btn.disabled = false; btn.textContent = '重试'; }
+            }
         }
 
         function setCountdownFromInput(port) {
-            const input = document.getElementById(`countdown-${port}`);
+            const input = document.getElementById('countdown-' + port);
             const minutes = parseInt(input.value) || 0;
             setCountdown(port, minutes);
         }
 
         function handleCountdownAction(port) {
-            const btn = document.getElementById(`countdown-btn-${port}`);
+            const btn = document.getElementById('countdown-btn-' + port);
             if (btn && btn.classList.contains('clear')) {
                 setCountdown(port, 0);
             } else {
-                const input = document.getElementById(`countdown-${port}`);
-                if (!input.value || parseInt(input.value) <= 0) return;
-                setCountdownFromInput(port);
+                const input = document.getElementById('countdown-' + port);
+                const val = parseInt(input.value);
+                setCountdown(port, (val && val > 0) ? val : 60);
             }
         }
-
         async function bleToggle() {
             const btn = document.getElementById('bleToggle');
             if (btn.disabled) return;
@@ -872,19 +1079,21 @@
                             }
                             if (msg.settings) {
                                 updateSettingsUI(msg.settings);
+                                updateSceneModeUI(msg.settings);
                                 renderCountdown(msg.settings);
                             }
-                            if (msg.protocol_switches) protocolSwitches = msg.protocol_switches;
+                            if (msg.protocol_switches) { protocolSwitches = msg.protocol_switches; renderProtocolCard(); }
                             if (msg.protocol_extend !== undefined) protocolExtend = msg.protocol_extend;
                             break;
                         case 'settings':
                             if (msg.settings) {
                                 updateSettingsUI(msg.settings);
+                                updateSceneModeUI(msg.settings);
                                 renderCountdown(msg.settings);
                             }
                             break;
                         case 'protocol':
-                            if (msg.switches) protocolSwitches = msg.switches;
+                            if (msg.switches) { protocolSwitches = msg.switches; renderProtocolCard(); }
                             if (msg.protocol_extend !== undefined) protocolExtend = msg.protocol_extend;
                             if (currentModalPort) renderModalProtocols();
                             break;
@@ -1059,11 +1268,13 @@
             if (Object.keys(lastSettings).length > 0) {
                 const sg = document.getElementById('settingsGrid');
                 if (sg) sg.innerHTML = buildSettingsHtml(lastSettings);
+                renderSceneMode(lastSettings);
             }
             countdownRendered = false;
             renderCountdown(lastSettings);
             const fwEl = document.getElementById('firmwareVersion');
             if (fwEl && fwEl.dataset.firmware) fwEl.textContent = I18N.t('common.firmware', { version: fwEl.dataset.firmware });
+
             if (currentModalPort) {
                 const rtBtn = document.getElementById('modalRealTimeBtn');
                 if (rtBtn) rtBtn.textContent = modalRealTimePort !== null ? I18N.t('modal.realtimeStop') : I18N.t('modal.realtime');
@@ -1075,4 +1286,5 @@
         }
         if (typeof I18N !== 'undefined' && typeof I18N.onChange === 'function') {
             I18N.onChange(rerenderDynamic);
+
         }

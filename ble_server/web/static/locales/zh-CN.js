@@ -58,6 +58,7 @@
             themeDeepBlue: '深蓝',
             themeOcean: '海洋',
             themeGray: '灰色',
+            themePureBlack: '纯黑',
             themeLight: '浅色',
             themeSystem: '跟随系统',
             range30: '30分',
@@ -69,10 +70,10 @@
 
         // ── Scene modes (device) ──
         scene: {
-            ai: 'AI模式',
+            ai: 'AI智能',
             eco: '数码生态',
-            single: '单口模式',
-            balanced: '均衡模式',
+            single: '极速单充',
+            balanced: '均衡输出',
             descAi: '自动识别设备智能匹配最优充电功率',
             descEco: '多口同时充电均衡分配功率',
             descSingle: '单口最大功率输出优先C1口',

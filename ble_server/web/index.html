@@ -7,14 +7,14 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preload" href="/static/chart.umd.min.js" as="script">
     <link rel="preload" href="/static/charger.png" as="image">
-    <script src="/static/locales/zh-CN.js?v=3"></script>
-    <script src="/static/locales/en.js?v=3"></script>
-    <script src="/static/i18n.js?v=3"></script>
+    <script src="/static/locales/zh-CN.js?v=67"></script>
+    <script src="/static/locales/en.js?v=67"></script>
+    <script src="/static/i18n.js?v=67"></script>
     <script defer src="/static/chart.umd.min.js"></script>
-    <script defer src="/static/charge_history.js?v=3"></script>
+    <script defer src="/static/charge_history.js?v=67"></script>
     <script src="/static/chart-loader.js"></script>
     <script src="/static/chart-config.js"></script>
-    <link rel="stylesheet" href="static/index.css?v=3">
+    <link rel="stylesheet" href="static/index.css?v=67">
 </head>
 <body>
     <div class="container">
@@ -54,7 +54,7 @@
                             <span data-i18n="index.connectionStatus">连接状态</span>
                             <span id="firmwareVersion" style="font-weight: 400; font-size: 10px;"></span>
                         </div>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <div class="badge-row" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px;">
                             <div style="position: relative;">
                                 <div id="statusBadge" class="status-badge disconnected">
                                     <span class="status-dot"></span>
@@ -72,7 +72,7 @@
                             <div style="position: relative;">
                                 <div id="bemfaBadge" class="status-badge disconnected">
                                     <span class="status-dot"></span>
-                                    <span>Bemfa</span>
+                                    <span>BEMFA</span>
                                 </div>
                                 <div id="bemfaTooltip" class="quality-tooltip" style="display:none;"></div>
                             </div>
@@ -96,7 +96,26 @@
                 </div>
             </div>
         </div>
+        <div class="card scene-card">
+            <div class="card-title">
+                <span data-i18n="settings.sceneMode">场景模式</span>
+                <span class="scene-sep">|</span>
+                <span class="scene-current" id="sceneCurrent"></span>
+                <span class="scene-more" style="margin-left:auto;">···</span>
+            </div>
+            <div class="scene-options" id="sceneOptions"></div>
+        </div>
 
+        <div class="card">
+            <div class="card-title"><span data-i18n="index.portMonitor">端口监控</span></div>
+            <div class="port-grid" id="portGrid"></div>
+        </div>
+
+        <div class="card proto-card">
+            <div class="card-title"><span>充电协议</span></div>
+            <div class="proto-grid" id="protoGrid"></div>
+        </div>
+        <!-- Charge History Card -->
         <div class="card">
             <div class="card-title"><span data-i18n="index.powerChart">功率曲线</span>
                 <div style="margin-left: auto; display: flex; gap: 4px;">
@@ -111,20 +130,20 @@
         </div>
 
         <div class="card">
-            <div class="card-title"><span data-i18n="index.portMonitor">端口监控</span> <span style="font-size:10px;color:var(--text-dim);text-transform:none;letter-spacing:0" data-i18n="index.clickForDetail">(点击查看详情)</span></div>
-            <div class="port-grid" id="portGrid"></div>
-        </div>
-
-        <!-- Charge History Card -->
-        <div class="card">
             <div class="card-title"><span data-i18n="index.chargeHistory">充电记录</span>
-                <select id="chargePeriod" onchange="startChargeHistoryAutoRefresh('chargeSessionList','chargeStats',this.value,30000)" style="margin-left:auto;background:var(--card-bg);border:1px solid var(--card-border);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--text-dim);">
-                    <option value="today" data-i18n="charge.today">今日</option>
-                    <option value="yesterday" data-i18n="charge.yesterday">昨日</option>
-                    <option value="week" data-i18n="charge.week">本周</option>
-                    <option value="month" data-i18n="charge.month">本月</option>
-                    <option value="all" data-i18n="charge.all">全部</option>
-                </select>
+                <div class="dropdown-switcher" id="chargePeriodSwitcher" style="margin-left:auto;">
+                    <button class="dropdown-btn" onclick="toggleChargePeriodMenu()">
+                        <span id="chargePeriodLabel" data-i18n="charge.today">今日</span>
+                        <span class="dropdown-arrow">▾</span>
+                    </button>
+                    <div class="dropdown-menu" id="chargePeriodMenu">
+                        <div class="dropdown-option active" onclick="setChargePeriod('today')" data-value="today" data-i18n="charge.today">今日</div>
+                        <div class="dropdown-option" onclick="setChargePeriod('yesterday')" data-value="yesterday" data-i18n="charge.yesterday">昨日</div>
+                        <div class="dropdown-option" onclick="setChargePeriod('week')" data-value="week" data-i18n="charge.week">本周</div>
+                        <div class="dropdown-option" onclick="setChargePeriod('month')" data-value="month" data-i18n="charge.month">本月</div>
+                        <div class="dropdown-option" onclick="setChargePeriod('all')" data-value="all" data-i18n="charge.all">全部</div>
+                    </div>
+                </div>
             </div>
             <div id="chargeStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;text-align:center;justify-items:center;"></div>
             <div id="chargeSessionList"></div>
@@ -159,11 +178,10 @@
         </div>
 
         <div class="card">
-            <div class="card-title" data-i18n="countdown.title">倒计时设置</div>
+            <div class="card-title">延时关闭</div>
             <div class="countdown-grid" id="countdownGrid"></div>
         </div>
-
-        <div class="card">
+<div class="card">
             <div class="card-title" data-i18n="index.deviceSettings">设备设置</div>
             <div class="settings-grid" id="settingsGrid"></div>
         </div>
@@ -187,6 +205,9 @@
                     </div>
                     <div class="theme-option" onclick="setTheme('gray')" data-theme="gray">
                         <span class="theme-dot" style="background: #2d2d2d;"></span> <span data-i18n="index.themeGray">灰色</span>
+                    </div>
+                    <div class="theme-option" onclick="setTheme('pure-black')" data-theme="pure-black">
+                        <span class="theme-dot" style="background: #000000; border: 1px solid #333;"></span> <span data-i18n="index.themePureBlack">纯黑</span>
                     </div>
                     <div class="theme-option" onclick="setTheme('light')" data-theme="light">
                         <span class="theme-dot" style="background: #f5f5f5;"></span> <span data-i18n="index.themeLight">浅色</span>
@@ -229,6 +250,6 @@
         </div>
     </div>
 
-    <script defer src="/static/app.js?v=3"></script>
+    <script defer src="/static/app.js?v=67"></script>
 </body>
 </html>

@@ -58,6 +58,7 @@
             themeDeepBlue: 'Deep Blue',
             themeOcean: 'Ocean',
             themeGray: 'Gray',
+            themePureBlack: 'Pure Black',
             themeLight: 'Light',
             themeSystem: 'System',
             range30: '30m',
