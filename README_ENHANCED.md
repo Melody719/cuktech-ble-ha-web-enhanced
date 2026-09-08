@@ -59,8 +59,8 @@
 ### 步骤一：克隆项目
 
 ```bash
-git clone https://gitee.com/你的用户名/cuktech-ble-ha-enhanced.git
-cd cuktech-ble-ha-enhanced\ble_server
+git clone https://github.com/Melody719/cuktech-ble-ha-web-.git
+cd cuktech-ble-ha-web-\ble_server
 ```
 
 ### 步骤二：创建虚拟环境并安装依赖
@@ -193,36 +193,79 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "CUKTECH-BLE-Ser
 ## 项目结构
 
 ```
-cuktech-ble-ha/
-├── ble_server/
-│   ├── ha_server.py              # 服务主入口（HTTP + SSE + BLE）
-│   ├── ble_manager.py            # BLE 连接管理
-│   ├── config.py                 # 配置加载
-│   ├── config.yaml               # 设备配置（含敏感信息，不入库）
-│   ├── config.yaml.example       # 配置模板
-│   ├── state.py                  # 设备状态管理
-│   ├── state_protocol_v2.py      # 协议状态管理
-│   ├── history.py                # 充电记录
-│   ├── energy.py                 # 能耗统计
-│   ├── downsample.py             # 数据降采样
-│   ├── xiaomi_cloud.py           # 小米云 Token 获取
-│   ├── bemfa_client.py           # 巴法云客户端
-│   ├── start_server.bat          # 【新增】一键启动脚本
+cuktech-ble-ha-web-/
+├── ble_server/                     # BLE 服务核心
+│   ├── ha_server.py               # HTTP API + SSE + MQTT 服务主入口
+│   ├── ble_manager.py             # BLE 连接管理
+│   ├── controller.py              # BLE 连接和命令处理
+│   ├── cli.py                     # CLI 用户界面
+│   ├── state.py                   # 状态管理
+│   ├── state_protocol_v2.py       # 协议检测引擎 V2
+│   ├── history.py                 # SQLite 历史数据
+│   ├── energy.py                  # 能耗统计
+│   ├── downsample.py              # 数据降采样
+│   ├── config.py                  # 配置加载（支持 YAML）
+│   ├── xiaomi_cloud.py            # 小米云 Token 获取
+│   ├── bemfa_client.py            # 巴法云 MQTT 客户端（小爱/小度）
+│   ├── config.yaml                # 设备配置（含敏感信息，不入库）
+│   ├── config.yaml.example        # 配置模板
+│   ├── check_env.sh               # 环境检查脚本
+│   ├── cuktech_ctl.sh             # 服务控制脚本
+│   ├── requirements.txt           # Python 依赖
+│   ├── pyproject.toml             # 项目配置
+│   ├── start_server.bat           # 【新增】一键启动脚本
 │   ├── start_server_autostart.ps1 # 【新增】开机自启 PowerShell
 │   ├── start_server_autostart.vbs # 【新增】静默启动包装
-│   ├── requirements.txt          # Python 依赖
-│   ├── pyproject.toml            # 项目配置
-│   └── web/
-│       ├── index.html            # 主页面（模块重排+自定义下拉）
-│       ├── config.html           # 配置页面
-│       └── static/
-│           ├── app.js            # 前端逻辑（自定义下拉+协议+场景+延时）
-│           ├── index.css         # 样式（含 52 个 OVERRIDES 增强块）
-│           └── locales/
-│               ├── zh-CN.js      # 中文语言包
-│               └── en.js         # 英文语言包
-├── README.md                     # 原项目说明
-└── RELEASE_NOTES.md              # 原项目更新日志
+│   ├── web/
+│   │   ├── index.html             # 桌面端 Web 界面（模块重排+自定义下拉）
+│   │   ├── phone.html             # 移动端 Web 界面
+│   │   ├── config.html            # 配置页面
+│   │   └── static/
+│   │       ├── app.js             # 前端逻辑（自定义下拉+协议+场景+延时）
+│   │       ├── index.css          # 样式（含 52 个 OVERRIDES 增强块）
+│   │       └── locales/
+│   │           ├── zh-CN.js       # 中文语言包
+│   │           └── en.js          # 英文语言包
+│   ├── docker/                    # Docker 部署文件
+│   ├── tests/                     # 单元测试 (240+ tests)
+│   └── systemd/                   # systemd 服务配置
+│
+├── ha_integration/                # Home Assistant 自定义集成
+│   └── custom_components/cuktech_charger/
+│       ├── __init__.py            # Coordinator
+│       ├── binary_sensor.py       # 端口状态 + BLE 连接状态
+│       ├── config_flow.py         # 配置流程（支持 reauth）
+│       ├── const.py               # 常量定义
+│       ├── manifest.json
+│       ├── number.py              # 倒计时数字实体
+│       ├── select.py              # 选择器实体
+│       ├── sensor.py              # 传感器实体
+│       ├── switch.py              # 开关实体 + BLE 连接控制
+│       ├── strings.json           # 英文翻译
+│       ├── translations/          # 多语言翻译
+│       ├── brand/                 # HACS 品牌图标
+│       └── icon.png
+│
+├── esp32_ble/                     # ESP32 固件
+│   └── main/
+│       ├── main.c                 # WiFi/MQTT/HTTP/OTA
+│       ├── ble_manager.c          # BLE 状态机 + 异步命令
+│       └── ...
+│
+├── docs/                          # 文档
+│   ├── server-readme.md
+│   ├── server-readme-en.md
+│   ├── integration-readme.md
+│   ├── integration-readme-en.md
+│   ├── esp32-readme.md
+│   ├── esp32-readme-en.md
+│   └── tools/                     # CLI 测试工具
+│
+├── README.md                      # 原项目说明
+├── README_ENHANCED.md             # 【新增】增强版项目介绍 + Windows 部署教程
+├── RELEASE_NOTES.md               # 原项目更新日志
+├── LICENSE
+└── bump-version.sh
 ```
 
 ---
