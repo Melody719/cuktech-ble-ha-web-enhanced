@@ -715,9 +715,9 @@ function buildSettingsHtml(settings) {
                 const cur = s.options.find(o => o.value === val);
                 const curLabel = cur ? I18N.t(cur.labelKey || cur.label) : '';
                 const opts = s.options.map(o =>
-                    `<div class="dropdown-option${o.value === val ? ' active' : ''}" onclick="setSettingValue(${s.piid}, ${o.value}, this)">${I18N.t(o.labelKey || o.label)}</div>`
+                    `<div class="dropdown-option${o.value === val ? ' active' : ''}" data-value="${o.value}" onclick="setSettingValue(${s.piid}, ${o.value}, this)">${I18N.t(o.labelKey || o.label)}</div>`
                 ).join('');
-                html += `<div class="setting-item"><span class="setting-label">${name}</span><div class="dropdown-switcher setting-switcher"><button class="dropdown-btn" onclick="toggleSettingMenu(this)"><span class="setting-dropdown-value">${curLabel}</span><span class="dropdown-arrow">▾</span></button><div class="dropdown-menu">${opts}</div></div></div>`;
+                html += `<div class="setting-item" data-piid="${s.piid}"><span class="setting-label">${name}</span><div class="dropdown-switcher setting-switcher"><button class="dropdown-btn" onclick="toggleSettingMenu(this)"><span class="setting-dropdown-value">${curLabel}</span><span class="dropdown-arrow">▾</span></button><div class="dropdown-menu">${opts}</div></div></div>`;
             });
             return html;
         }
@@ -769,9 +769,14 @@ function buildSettingsHtml(settings) {
         }
 
         function updateSceneModeUI(settings) {
+            if (isRecent()) return;
             if (!sceneRendered) { renderSceneMode(settings); return; }
             const val = settings ? (settings['5'] ?? 1) : 1;
-            document.querySelectorAll('.scene-option').forEach(el => {
+            
+            // SSE回传值与当前显示一致时跳过，避免重复渲染动画
+            const activeEl = document.querySelector('.scene-option.active');
+            if (activeEl && parseInt(activeEl.dataset.value, 10) === val) return;
+document.querySelectorAll('.scene-option').forEach(el => {
                 el.classList.toggle('active', parseInt(el.dataset.value, 10) === val);
             });
             const cur = SCENE_MODES.find(m => m.value === val);
@@ -781,15 +786,36 @@ function buildSettingsHtml(settings) {
 
         async function setSceneMode(value) {
             markLocal();
+            // 快速连续点击时禁用CSS过渡动画，避免重叠
+            const now = Date.now();
+            const sceneContainer = document.getElementById('sceneOptions');
+            if (sceneContainer) {
+                if (now - (window._lastSceneClick || 0) < 300) {
+                    sceneContainer.classList.add('rapid-switch');
+                    clearTimeout(window._sceneSwitchTimer);
+                }
+                window._lastSceneClick = now;
+                window._sceneSwitchTimer = setTimeout(() => {
+                    sceneContainer.classList.remove('rapid-switch');
+                }, 400);
+            }
             document.querySelectorAll('.scene-option').forEach(el => {
                 el.classList.toggle('active', parseInt(el.dataset.value, 10) === value);
             });
             const cur = SCENE_MODES.find(m => m.value === value);
             const curEl = document.getElementById('sceneCurrent');
             if (curEl && cur) curEl.textContent = I18N.t(cur.labelKey);
-            try {
-                await fetch(API_BASE + '/api/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid: 5, value: value }) });
-            } catch (e) { console.error('Set scene mode error:', e); }
+                        // 同步更新设备设置中的场景模式下拉
+            const settingItem = document.querySelector('.setting-item[data-piid="5"]');
+            if (settingItem) {
+                const valueEl = settingItem.querySelector('.setting-dropdown-value');
+                if (valueEl && cur) valueEl.textContent = I18N.t(cur.labelKey);
+                settingItem.querySelectorAll('.dropdown-option').forEach(o => {
+                    const ov = parseInt(o.dataset.value, 10);
+                    o.classList.toggle('active', ov === value);
+                });
+            }
+fetch(API_BASE + '/api/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid: 5, value: value }) }).catch(e => console.error('Set scene mode error:', e));
         }
         function updateSettingsUI(settings) {
             const grid = document.getElementById('settingsGrid');
@@ -825,7 +851,16 @@ function buildSettingsHtml(settings) {
 
         async function setSetting(piid, value) {
             markLocal();
-            try { await fetch(`${API_BASE}/api/set`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid, value }) }); } catch (e) { console.error('Set setting error:', e); }
+                        // 反向同步：从设备设置切换场景模式时更新场景卡片
+            if (piid === 5) {
+                document.querySelectorAll('.scene-option').forEach(el => {
+                    el.classList.toggle('active', parseInt(el.dataset.value, 10) === value);
+                });
+                const cur = SCENE_MODES.find(m => m.value === value);
+                const curEl = document.getElementById('sceneCurrent');
+                if (curEl && cur) curEl.textContent = I18N.t(cur.labelKey);
+            }
+try { await fetch(`${API_BASE}/api/set`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ piid, value }) }); } catch (e) { console.error('Set setting error:', e); }
         }
 
         let countdownRendered = false;

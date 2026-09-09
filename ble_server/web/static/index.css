@@ -1646,3 +1646,12 @@ body { zoom: 0.95 !important; }
    OVERRIDES v66 — 场景卡片padding-bottom 17px
    ============================================================ */
 .scene-card { padding-bottom: 17px !important; }
+/* ============================================================
+   OVERRIDES v67 — 场景模式快速点击禁用过渡动画
+   ============================================================ */
+#sceneOptions.rapid-switch .scene-option {
+    transition: none !important;
+}
+#sceneOptions.rapid-switch .scene-option * {
+    transition: none !important;
+}
