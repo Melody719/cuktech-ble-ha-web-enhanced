@@ -11,11 +11,13 @@ import gzip
 import hashlib
 import json
 import logging
+import math
 import os
 import threading
 import time
 from collections import OrderedDict
 from pathlib import Path
+from typing import Any
 from aiohttp import web
 
 from config import load_config, LOG_LEVELS
@@ -38,6 +40,42 @@ _LOGGER = logging.getLogger("cuktech_server")
 
 
 _sse_log = logging.getLogger("cuktech_sse")
+
+
+def _setup_file_logging() -> bool:
+    """设置 CUKTECH_LOG_FILE 时，附加 RotatingFileHandler（UTF-8，5MB×3 代）。
+
+    Windows 自启动脚本此前用 PowerShell `*>>` 重定向 stdout/stderr：
+    - PS 5.1 以 GBK 解码 Python 的 UTF-8 输出 → server.log 中文全部乱码；
+    - 日志无轮转 → server.log 无界增长（两天累积 9.7MB，其中 1 万+ 行是
+      aiohttp 访问日志）。
+    改为 Python 侧直写轮转文件后，文件接管全量日志，控制台 handler 降为
+    WARNING+（供启动脚本兜底捕获异常，避免 stderr 重定向文件再次无界增长）。
+    未设置该环境变量时（手动 bat / Linux / Docker）行为不变，仅控制台输出。
+    """
+    path = os.environ.get("CUKTECH_LOG_FILE")
+    if not path:
+        return False
+    try:
+        from logging.handlers import RotatingFileHandler
+        handler = RotatingFileHandler(
+            path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(name)s %(levelname)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        ))
+        root = logging.getLogger()
+        root.addHandler(handler)
+        for h in root.handlers:
+            if isinstance(h, logging.StreamHandler) and not isinstance(h, RotatingFileHandler):
+                h.setLevel(logging.WARNING)
+        return True
+    except OSError as e:
+        _LOGGER.warning("无法打开日志文件 %s: %s（保持控制台输出）", path, e)
+        return False
+
+
+_setup_file_logging()
 
 
 # ── Request size limit (prevent DoS via large payloads) ──
@@ -65,8 +103,8 @@ class SSEEmitter:
             self._pending_status.pop(id(queue), None)
         _sse_log.info("SSE client disconnected (total: %d)", len(self._clients))
 
-    def _put_or_drop(self, q: asyncio.Queue, payload: str):
-        """Put payload in queue; drop oldest if full."""
+    def _put_or_drop(self, q: asyncio.Queue, payload: str | None):
+        """Put payload in queue; drop oldest if full. payload=None 为关机哨兵。"""
         try:
             q.put_nowait(payload)
         except asyncio.QueueFull:
@@ -108,8 +146,23 @@ class SSEEmitter:
         with self._lock:
             return self._pending_status.pop(id(q), None)
 
+    def close_all(self):
+        """向所有客户端队列推送哨兵 (None)，令 SSE 流优雅结束。
+
+        服务关闭时调用：SSE 是长连接，若不主动关闭，aiohttp 需等待
+        shutdown_timeout 后强制取消所有处理器任务，拖慢退出速度。
+        """
+        with self._lock:
+            clients = list(self._clients)
+        for q in clients:
+            self._put_or_drop(q, None)
+
 
 class Server:
+    # /api/chart 单次响应的数据桶上限：hours=720 & interval=5 会产生 51 万+
+    # 数据点（数十 MB JSON），耗尽 CPU/内存并撑爆缓存；超出时自动抬高聚合间隔。
+    MAX_CHART_POINTS = 4096
+
     def __init__(self):
         self.config = load_config()
         self.state = ChargerState()
@@ -123,11 +176,16 @@ class Server:
         self._status_cache_bytes = None
         self._status_cache_valid = False
         self._chart_cache: OrderedDict = OrderedDict()
-        self._chart_cache_ttl = 10
+        # 前端每 30s 轮询一次 /api/chart（app.js sseChartTimer），TTL 与之对齐：
+        # 同一参数的连续轮询直接命中缓存，不再每次重建（SQLite 聚合 + JSON + gzip）
+        self._chart_cache_ttl = 30
         self._chart_cache_max = 10
         self.sse = SSEEmitter()
         self._xiaomi_sessions: dict[str, tuple[Any, asyncio.TimerHandle | None]] = {}  # session_id -> (client, timer)
         self._start_time = time.time()
+        # CORS 白名单预计算（避免每个请求重复构建集合）
+        _port = self.config.server.port
+        self.allowed_origins = frozenset({f"http://localhost:{_port}", f"http://127.0.0.1:{_port}"})
         self.history = PortHistory(
             db_path=self.config.server.history_db_path,
             retention_days=self.config.server.history_retention_days,
@@ -431,9 +489,8 @@ class Server:
         data = await self.state.to_dict()
         data["mqtt_connected"] = self.mqtt_client is not None and self.mqtt_client.is_connected()
         data["session_recording"] = bool(self.ble.record_sessions)
-        self._status_cache_bytes = await asyncio.to_thread(
-            lambda: json.dumps(data, ensure_ascii=False).encode()
-        )
+        # 状态字典很小（<2KB），内联序列化比 to_thread 线程往返开销更低
+        self._status_cache_bytes = json.dumps(data, ensure_ascii=False).encode()
         self._status_cache_valid = True
         return web.Response(
             body=self._status_cache_bytes,
@@ -700,31 +757,32 @@ class Server:
     async def handle_chart(self, request):
         """Get chart-ready data for all ports with caching and ETag."""
         try:
-            hours = min(float(request.query.get("hours", 1)), 720)
+            hours = float(request.query.get("hours", 1))
         except (ValueError, TypeError):
             return web.json_response({"ok": False, "error": "invalid hours parameter"}, status=400)
+        if not (0 < hours <= 720):  # NaN 也会在此被拒绝
+            return web.json_response({"ok": False, "error": "hours must be in (0, 720]"}, status=400)
         try:
-            interval = max(int(request.query.get("interval", 30)), 5)
+            interval = int(request.query.get("interval", 30))
         except (ValueError, TypeError):
             return web.json_response({"ok": False, "error": "invalid interval parameter"}, status=400)
+        # 桶数上限保护：超出 MAX_CHART_POINTS 时自动抬高聚合间隔，
+        # 防止 hours=720&interval=5 之类的请求生成 51 万+ 数据点
+        interval = max(interval, 5, math.ceil(hours * 3600 / self.MAX_CHART_POINTS))
         cache_key = f"{hours}:{interval}"
+        if_none_match = request.headers.get("If-None-Match", "")
+        accept_gzip = request.headers.get("Accept-Encoding", "").find("gzip") != -1
 
         # Check cache
         now = time.time()
         entry = self._chart_cache.get(cache_key)
-        if entry:
-            cached_time, cached_etag, cached_body, _ = entry
-            if now - cached_time < self._chart_cache_ttl:
-                if_none_match = request.headers.get("If-None-Match")
-                if if_none_match == cached_etag:
-                    return web.Response(status=304)
-                return web.Response(
-                    body=cached_body,
-                    content_type="application/json",
-                    headers={"ETag": cached_etag},
-                )
+        if entry and now - entry[0] < self._chart_cache_ttl:
+            _, cached_etag, cached_body, cached_gz = entry
+            if _etag_match(if_none_match, cached_etag):
+                return web.Response(status=304, headers={"ETag": cached_etag, "Cache-Control": "no-cache"})
+            return self._chart_response(cached_body, cached_gz, cached_etag, accept_gzip)
 
-        # Generate data in thread pool (strftime + loops + json.dumps + sha256 are all CPU-bound)
+        # Generate data in thread pool (strftime + loops + json.dumps + sha256 + gzip are all CPU-bound)
         now_ts = time.time()
         start_ts = now_ts - hours * 3600
         aligned_start = (int(start_ts) // interval) * interval
@@ -770,26 +828,41 @@ class Server:
                 },
             }
             body = json.dumps(result, ensure_ascii=False).encode()
-            etag = hashlib.sha256(body).hexdigest()
-            return body, etag
+            etag = '"' + hashlib.sha256(body).hexdigest()[:32] + '"'
+            # gzip 版本随缓存一起保存：30s 轮询的每个请求不再重复压缩
+            gzipped = None
+            if len(body) >= 1024:
+                compressed = gzip.compress(body)
+                if len(compressed) < len(body):
+                    gzipped = compressed
+            return body, etag, gzipped
 
         if use_date:
             all_labels = [time.strftime('%m-%d %H:%M', time.localtime(t)) for t in epochs]
         else:
             all_labels = [time.strftime('%H:%M', time.localtime(t)) for t in epochs]
 
-        body, etag = await asyncio.to_thread(_build_chart, epochs, all_labels, raw_rows)
+        body, etag, gzipped = await asyncio.to_thread(_build_chart, epochs, all_labels, raw_rows)
 
         # Update cache: OrderedDict O(1) eviction
-        self._chart_cache[cache_key] = (now, etag, body, now)
+        self._chart_cache[cache_key] = (now, etag, body, gzipped)
         if len(self._chart_cache) > self._chart_cache_max:
             self._chart_cache.popitem(last=False)
 
-        return web.Response(
-            body=body,
-            content_type="application/json",
-            headers={"ETag": etag},
-        )
+        # 数据未变化（充电器空闲时很常见）：即使缓存过期重建，也回 304 省流量
+        if _etag_match(if_none_match, etag):
+            return web.Response(status=304, headers={"ETag": etag, "Cache-Control": "no-cache"})
+        return self._chart_response(body, gzipped, etag, accept_gzip)
+
+    @staticmethod
+    def _chart_response(body: bytes, gzipped: bytes | None, etag: str, accept_gzip: bool) -> web.Response:
+        """构造 chart JSON 响应：优先返回预压缩体，附带 ETag 供下次协商。"""
+        headers = {"ETag": etag, "Cache-Control": "no-cache"}
+        if accept_gzip and gzipped:
+            headers["Content-Encoding"] = "gzip"
+            headers["Vary"] = "Accept-Encoding"
+            body = gzipped
+        return web.Response(body=body, content_type="application/json", headers=headers)
 
     async def handle_statistics(self, request):
         """Get port statistics."""
@@ -797,7 +870,12 @@ class Server:
             port = int(request.match_info.get("port", 1))
         except ValueError:
             return web.json_response({"ok": False, "error": "invalid port"}, status=400)
-        hours = min(float(request.query.get("hours", 24)), 720)
+        try:
+            hours = float(request.query.get("hours", 24))
+        except (ValueError, TypeError):
+            return web.json_response({"ok": False, "error": "invalid hours parameter"}, status=400)
+        if not (0 < hours <= 720):
+            return web.json_response({"ok": False, "error": "hours must be in (0, 720]"}, status=400)
 
         if port not in range(1, 5):
             return web.json_response({"ok": False, "error": "invalid port"}, status=400)
@@ -811,7 +889,12 @@ class Server:
             port = int(request.match_info.get("port", 1))
         except ValueError:
             return web.json_response({"ok": False, "error": "invalid port"}, status=400)
-        hours = min(float(request.query.get("hours", 24)), 720)
+        try:
+            hours = float(request.query.get("hours", 24))
+        except (ValueError, TypeError):
+            return web.json_response({"ok": False, "error": "invalid hours parameter"}, status=400)
+        if not (0 < hours <= 720):
+            return web.json_response({"ok": False, "error": "hours must be in (0, 720]"}, status=400)
 
         if port not in range(1, 5):
             return web.json_response({"ok": False, "error": "invalid port"}, status=400)
@@ -830,23 +913,9 @@ class Server:
         path = '/phone.html' if self.MOBILE_UA.search(ua) else '/index.html'
         entry = _static_cache.get(path)
         if entry:
-            accept_gzip = request.headers.get("Accept-Encoding", "").find("gzip") != -1
-            if accept_gzip and entry["gzipped"]:
-                body = entry["gzipped"]
-                headers = {
-                    "Content-Type": "text/html",
-                    "Content-Encoding": "gzip",
-                    "Content-Length": str(len(body)),
-                    "Cache-Control": "public, max-age=604800, immutable",
-                }
-            else:
-                body = entry["raw"]
-                headers = {
-                    "Content-Type": "text/html",
-                    "Content-Length": str(len(body)),
-                    "Cache-Control": "public, max-age=604800, immutable",
-                }
-            return web.Response(body=body, headers=headers)
+            # ETag 协商缓存：HTML 无版本指纹，长 max-age 会让升级后的新界面
+            # 最长 7 天不生效；no-cache + ETag 未变化时只传 304（几百字节）
+            return _cached_response(entry, request)
         return web.FileResponse(WEB_DIR / path.lstrip('/'))
 
     # ── Charge Session API ──
@@ -855,8 +924,11 @@ class Server:
         """GET /api/sessions?port=c1&period=today&limit=10&page=1"""
         port_str = request.query.get("port", "")
         period = request.query.get("period", "today")
-        limit = min(int(request.query.get("limit", "10")), 50)
-        page = max(1, int(request.query.get("page", "1")))
+        try:
+            limit = min(max(int(request.query.get("limit", "10")), 1), 50)
+            page = max(1, int(request.query.get("page", "1")))
+        except (ValueError, TypeError):
+            return web.json_response({"ok": False, "error": "invalid limit/page parameter"}, status=400)
 
         port = None
         if port_str:
@@ -927,8 +999,16 @@ class Server:
 
     async def handle_session_points(self, request):
         """GET /api/sessions/{id}/points?downsample=600"""
-        sid = int(request.match_info["id"])
-        target = int(request.query.get("downsample", "0"))
+        try:
+            sid = int(request.match_info["id"])
+        except (KeyError, ValueError, TypeError):
+            return web.json_response({"ok": False, "error": "invalid session id"}, status=400)
+        try:
+            target = int(request.query.get("downsample", "0"))
+        except (ValueError, TypeError):
+            return web.json_response({"ok": False, "error": "invalid downsample parameter"}, status=400)
+        if target < 0:
+            target = 0
         loop = asyncio.get_running_loop()
         points = await loop.run_in_executor(
             None, self.history.get_session_points, sid)
@@ -1009,11 +1089,16 @@ class Server:
                 # Keepalive every 15s + event wait
                 try:
                     msg = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    await response.write(f"data: {msg}\n\n".encode())
                 except asyncio.TimeoutError:
                     await response.write(b": keepalive\n\n")
+                    continue
+                if msg is None:
+                    # 关机哨兵（SSEEmitter.close_all）：优雅结束流，加速服务退出
+                    break
+                await response.write(f"data: {msg}\n\n".encode())
         except asyncio.CancelledError:
             _sse_log.debug("SSE handler cancelled")
+            raise  # 恢复取消语义：清理后向上传播（服务关闭/客户端断开的标准路径）
         except (ConnectionError, OSError, RuntimeError) as e:
             _sse_log.debug("SSE client disconnected (%s: %s)", type(e).__name__, e)
         except asyncio.TimeoutError:
@@ -1165,7 +1250,9 @@ class Server:
                 pass
         s.history.close()
         # Re-exec: replace current process with fresh server
-        os.execv(sys.executable, [sys.executable, str(Path(__file__).parent / "ha_server.py")])
+        # -u：保持无缓冲输出（Windows 上 execv 会新建进程，不继承命令行参数，
+        # 丢失 -u 会让重定向到 server.log 的日志长时间滞留缓冲区）
+        os.execv(sys.executable, [sys.executable, "-u", str(Path(__file__).parent / "ha_server.py")])
 
     # ── Xiaomi Cloud API ──
 
@@ -1361,6 +1448,7 @@ def _cache_static_files():
             "raw": raw,
             "gzipped": gzipped,
             "content_type": ct,
+            "etag": _make_etag(raw),
         }
     # 根目录 HTML 文件也加入缓存
     for html_name in ("index.html", "phone.html", "config.html"):
@@ -1373,31 +1461,61 @@ def _cache_static_files():
                 "raw": raw,
                 "gzipped": gzipped,
                 "content_type": "text/html",
+                "etag": _make_etag(raw),
             }
 
 
+def _make_etag(raw: bytes) -> str:
+    """内容哈希 ETag（启动预载时计算一次，运行时零开销）。"""
+    return '"' + hashlib.sha256(raw).hexdigest()[:32] + '"'
+
+
+def _etag_match(if_none_match: str, etag: str) -> bool:
+    """检查 If-None-Match 头：支持逗号分隔列表与 W/ 弱校验前缀。"""
+    if not if_none_match:
+        return False
+    for tag in if_none_match.split(","):
+        tag = tag.strip()
+        if tag.startswith("W/"):
+            tag = tag[2:]
+        if tag == etag:
+            return True
+    return False
+
+
+def _cached_response(entry: dict, request) -> web.Response:
+    """按静态缓存条目构造响应：ETag 命中 → 304，否则协商 gzip 编码。
+
+    Cache-Control: no-cache（非 no-store）——浏览器保留本地副本，但每次使用前
+    必须携带 If-None-Match 回源验证；内容未变时仅传输 304（几百字节）。
+    静态文件无版本指纹（phone.js 等），此前的 max-age=604800,immutable 会导致
+    项目升级后浏览器最长 7 天仍使用旧界面。
+    """
+    etag = entry["etag"]
+    if _etag_match(request.headers.get("If-None-Match", ""), etag):
+        return web.Response(status=304, headers={"ETag": etag, "Cache-Control": "no-cache"})
+    accept_gzip = request.headers.get("Accept-Encoding", "").find("gzip") != -1
+    headers = {
+        "Content-Type": entry["content_type"],
+        "Cache-Control": "no-cache",
+        "ETag": etag,
+    }
+    if accept_gzip and entry["gzipped"]:
+        body = entry["gzipped"]
+        headers["Content-Encoding"] = "gzip"
+        headers["Vary"] = "Accept-Encoding"
+    else:
+        body = entry["raw"]
+    headers["Content-Length"] = str(len(body))
+    return web.Response(body=body, headers=headers)
+
+
 async def handle_cached_static(request):
-    """从内存缓存响应静态文件，避免磁盘 I/O 和运行时 gzip。"""
+    """从内存缓存响应静态文件：无磁盘 I/O、无运行时 gzip、ETag 协商（304）。"""
     entry = _static_cache.get(request.path)
     if entry is None:
         raise web.HTTPNotFound()
-    accept_gzip = request.headers.get("Accept-Encoding", "").find("gzip") != -1
-    if accept_gzip and entry["gzipped"]:
-        body = entry["gzipped"]
-        headers = {
-            "Content-Type": entry["content_type"],
-            "Content-Encoding": "gzip",
-            "Content-Length": str(len(body)),
-            "Cache-Control": "public, max-age=604800, immutable",
-        }
-    else:
-        body = entry["raw"]
-        headers = {
-            "Content-Type": entry["content_type"],
-            "Content-Length": str(len(body)),
-            "Cache-Control": "public, max-age=604800, immutable",
-        }
-    return web.Response(body=body, headers=headers)
+    return _cached_response(entry, request)
 
 
 def get_server():
@@ -1421,13 +1539,10 @@ async def cors_middleware(request, handler):
     else:
         response = await handler(request)
     origin = request.headers.get("Origin", "")
-    s = get_server()
-    allowed_origins = {
-        f"http://localhost:{s.config.server.port}",
-        f"http://127.0.0.1:{s.config.server.port}",
-    }
-    if origin and origin in allowed_origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
+    if origin:
+        # 白名单在 Server.__init__ 预计算（frozenset），无 Origin 的请求零开销
+        if origin in get_server().allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
@@ -1452,16 +1567,17 @@ async def request_size_limit_middleware(request, handler):
 
 @web.middleware
 async def request_timeout_middleware(request, handler):
-    """Apply a per-request timeout (30s for API, 120s for SSE)."""
-    if request.path == "/api/events":
-        timeout = 120.0
-    elif request.path.startswith("/api/"):
-        timeout = 30.0
-    else:
-        # Static files / HTML — no timeout
+    """Apply a per-request timeout (30s) to API handlers.
+
+    /api/events (SSE) 豁免：它是设计上的长连接流，死连接由 15s keepalive
+    写入失败检测、服务关闭由 SSEEmitter.close_all() 哨兵收敛。此前对该路径
+    施加 120s 硬超时，导致每个浏览器客户端每 2 分钟被强制断线重连一次
+    （重连即重推全量 init 状态，白白消耗带宽与 CPU）。
+    """
+    if not request.path.startswith("/api/") or request.path == "/api/events":
         return await handler(request)
     try:
-        return await asyncio.wait_for(handler(request), timeout=timeout)
+        return await asyncio.wait_for(handler(request), timeout=30.0)
     except asyncio.TimeoutError:
         _LOGGER.warning("Request timeout: %s %s", request.method, request.path)
         return web.json_response(
@@ -1491,21 +1607,7 @@ async def gzip_middleware(request, handler):
             response.body = compressed
             response.headers["Content-Encoding"] = "gzip"
             response.headers["Content-Length"] = str(len(compressed))
-    return response
-
-
-@web.middleware
-async def cache_middleware(request, handler):
-    response = await handler(request)
-    # 已由 handle_cached_static / handle_index 设置缓存头的文件跳过
-    if response.headers.get("Cache-Control"):
-        return response
-    if request.path.startswith("/static/"):
-        if request.path.endswith((".js", ".css", ".png", ".ico", ".woff", ".woff2")):
-            if os.environ.get("CUKTECH_ENV") == "development":
-                response.headers["Cache-Control"] = "no-cache"
-            else:
-                response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+            response.headers["Vary"] = "Accept-Encoding"
     return response
 
 
@@ -1513,7 +1615,6 @@ app = web.Application(middlewares=[
     request_size_limit_middleware,
     cors_middleware,
     gzip_middleware,
-    cache_middleware,
     request_timeout_middleware,
 ])
 app.router.add_get("/", lambda r: get_server().handle_index(r))
@@ -1578,6 +1679,8 @@ async def on_startup(app_):
 async def on_shutdown(app_):
     _LOGGER.info("Shutting down...")
     s = get_server()
+    # 先关闭所有 SSE 流（哨兵），避免 aiohttp 等待 shutdown_timeout 后强制取消
+    s.sse.close_all()
     # Close active sessions first
     s.ble._close_active_sessions()
     # BLE disconnect with timeout
@@ -1611,4 +1714,15 @@ app.on_shutdown.append(on_shutdown)
 
 if __name__ == "__main__":
     s = get_server()
-    web.run_app(app, host="0.0.0.0", port=s.config.server.port)
+    # 访问日志默认关闭：每请求一条 INFO 是 server.log 膨胀的主要来源
+    # （10k+ 行/两天）。排障时可设 CUKTECH_ACCESS_LOG=1 临时开启。
+    access_log = (logging.getLogger("aiohttp.access")
+                  if os.environ.get("CUKTECH_ACCESS_LOG") else None)
+    web.run_app(
+        app,
+        host=s.config.server.host,
+        port=s.config.server.port,
+        access_log=access_log,
+        # SSE/keepalive 连接的优雅关闭窗口；超时后 aiohttp 会强制取消处理器
+        shutdown_timeout=10.0,
+    )

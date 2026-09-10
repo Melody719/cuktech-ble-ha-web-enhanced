@@ -6,6 +6,14 @@ import pytest
 class TestPortHistory:
     """Test PortHistory SQLite operations."""
 
+    def test_empty_db_path_falls_back_to_default(self):
+        """空字符串路径必须回退默认文件名（sqlite3.connect("") 是临时库，重启丢数据）。"""
+        from history import PortHistory, DEFAULT_DB_PATH
+        h = PortHistory(db_path="")
+        assert h.db_path == DEFAULT_DB_PATH
+        h2 = PortHistory(db_path=None)
+        assert h2.db_path == DEFAULT_DB_PATH
+
     def test_record_and_query(self, history, mock_ble_data):
         """Test recording and querying port data."""
         history.record_port_data(1, mock_ble_data)

@@ -161,7 +161,11 @@ def load_config() -> Config:
         settings_refresh_interval=server_cfg.get("settings_refresh_interval", 60.0),
         log_level=os.environ.get("CUKTECH_LOG_LEVEL", server_cfg.get("log_level", "info")),
         history_retention_days=history_retention,
-        history_db_path=os.environ.get("CUKTECH_HISTORY_DB_PATH", server_cfg.get("history_db_path", "port_history.db")),
+        # 注意：用 or 链而非 dict.get 默认值 —— 环境变量/config.yaml 中的空字符串
+        # 会让 sqlite3.connect("") 建临时库（连接关闭即消失，重启丢失全部历史数据）
+        history_db_path=(os.environ.get("CUKTECH_HISTORY_DB_PATH")
+                         or server_cfg.get("history_db_path")
+                         or "port_history.db"),
         reconnect_base_delay=reconnect_base_delay,
         reconnect_max_delay=reconnect_max_delay,
     )

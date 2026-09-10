@@ -24,7 +24,9 @@ class PortHistory:
     BATCH_INTERVAL = 1.0     # 距上次提交超过该秒数即强制提交
 
     def __init__(self, db_path: str = DEFAULT_DB_PATH, retention_days: int = DEFAULT_RETENTION_DAYS):
-        self.db_path = db_path
+        # 兜底：空字符串路径会让 sqlite3.connect("") 创建进程退出即删除的临时库，
+        # 导致充电历史/会话数据在每次重启后全部丢失（config 层已修复，此处双保险）
+        self.db_path = db_path or DEFAULT_DB_PATH
         self.retention_days = retention_days
         self._conn: Optional[sqlite3.Connection] = None
         self._db_lock = threading.Lock()  # 保护所有读写操作
